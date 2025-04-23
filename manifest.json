@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Memos Quick Note",
+  "version": "1.0.0",
+  "description": "A Chrome extension for quickly adding notes to Memos (v0.18.2)",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "contextMenus"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ]
+} 
