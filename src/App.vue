@@ -1,163 +1,23 @@
 <template>
-  <div class="memos-extension" :style="{ width: settings.width + 'px', height: settings.height + 'px' }">
+  <div class="memos-extension" :class="settings.theme" :style="{ width: settings.width + 'px', height: settings.height + 'px' }">
     <header>
       <h1>MEMOS</h1>
-      <div class="settings-icon" @click="showSettings = true">
+      <div class="settings-icon" @click="openSettings">
         <i class="fas fa-cog"></i>
       </div>
     </header>
 
     <!-- 设置面板 -->
-    <div v-if="showSettings" class="settings-panel">
-      <h2>基本设置</h2>
-      <div class="form-group">
-        <label>Memos 主页网址</label>
-        <input v-model="settings.host" type="text" placeholder="请输入 Memos 主页网址">
-      </div>
-      <div class="form-group">
-        <label>API 版本</label>
-        <select v-model="settings.apiVersion">
-          <option value="v1">0.18.x</option>
-          <option value="v2">0.24.x</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>{{ settings.apiVersion === 'v1' ? 'Access Token' : 'Access Token / OpenAPI' }}</label>
-        <input v-model="settings.token" type="password" :placeholder="settings.apiVersion === 'v1' ? '请输入 Memos Access Tokens' : '请输入 Access Token 或 OpenAPI'">
-      </div>
-
-      <h2>内容设置</h2>
-      <div class="form-group checkbox">
-        <input type="checkbox" id="addSource" v-model="settings.addSource">
-        <label for="addSource">自动添加来源信息</label>
-      </div>
-      <div class="form-group checkbox">
-        <input type="checkbox" id="addTag" v-model="settings.addTag">
-        <label for="addTag">自动添加 #quick-capture 标签</label>
-      </div>
-      <div class="form-group checkbox">
-        <input type="checkbox" id="useQuote" v-model="settings.useQuote">
-        <label for="useQuote">使用引用格式（>）包裹选中文本</label>
-      </div>
-
-      <h2>默认设置</h2>
-      <div class="form-group">
-        <label>默认可见性</label>
-        <select v-model="settings.defaultVisibility">
-          <option value="PUBLIC">所有人可见</option>
-          <option value="PRIVATE">仅自己可见</option>
-          <option value="PROTECTED">登录可见</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>自定义标签</label>
-        <input v-model="settings.customTags" type="text" placeholder="用逗号分隔，如: daily,note">
-      </div>
-      <div class="form-group">
-        <label>内容模板</label>
-        <textarea
-          v-model="settings.template"
-          placeholder="可用变量：{content}, {url}, {title}, {date}"
-          rows="3"
-        ></textarea>
-      </div>
-
-      <h2>快捷键设置</h2>
-      <div class="form-group checkbox">
-        <input type="checkbox" id="enableShortcuts" v-model="settings.enableShortcuts">
-        <label for="enableShortcuts">启用快捷键</label>
-      </div>
-      <div class="shortcut-list" v-if="settings.enableShortcuts">
-        <div class="shortcut-item">
-          <span>Ctrl/Cmd + Enter</span>
-          <span>快速保存</span>
-        </div>
-        <div class="shortcut-item">
-          <span>Ctrl/Cmd + Shift + P</span>
-          <span>切换可见性</span>
-        </div>
-      </div>
-
-      <h2>标签设置</h2>
-      <div class="form-group">
-        <label>标签输入后行为</label>
-        <select v-model="settings.tagBehavior">
-          <option value="space">添加空格</option>
-          <option value="newline">添加换行</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>{{ settings.tagBehavior === 'space' ? '空格' : '换行' }}数量</label>
-        <div class="number-input">
-          <button @click="decrementCount" type="button" class="number-btn">-</button>
-          <input 
-            type="number" 
-            v-model.number="settings.tagSpaceCount" 
-            min="1" 
-            max="5"
-            class="count-input"
-          >
-          <button @click="incrementCount" type="button" class="number-btn">+</button>
-        </div>
-        <div class="preview-box">
-          预览：<span class="preview-content">{{ tagEndingPreview }}</span>
-        </div>
-      </div>
-
-      <h2>页面设置</h2>
-      <div class="form-group">
-        <label>宽度 (px)</label>
-        <div class="number-input">
-          <button @click="decrementWidth" type="button" class="number-btn">-</button>
-          <input 
-            type="number" 
-            v-model.number="settings.width" 
-            min="300" 
-            max="800"
-            class="count-input"
-          >
-          <button @click="incrementWidth" type="button" class="number-btn">+</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>高度 (px)</label>
-        <div class="number-input">
-          <button @click="decrementHeight" type="button" class="number-btn">-</button>
-          <input 
-            type="number" 
-            v-model.number="settings.height" 
-            min="200" 
-            max="600"
-            class="count-input"
-          >
-          <button @click="incrementHeight" type="button" class="number-btn">+</button>
-        </div>
-      </div>
-
-      <h2>配置管理</h2>
-      <div class="form-group">
-        <button class="export-btn" @click="exportSettings">导出配置</button>
-        <label class="import-btn">
-          导入配置
-          <input 
-            type="file" 
-            accept=".json" 
-            @change="importSettings"
-            style="display: none"
-          >
-        </label>
-      </div>
-
-      <button class="save-btn" @click="saveSettings">保存</button>
-      
-      <!-- 调试信息 -->
-      <div v-if="isDev" class="debug-info">
-        <pre>{{ debugInfo }}</pre>
-      </div>
-    </div>
+    <Setting
+      v-model:content="content"
+      v-model:settings="settings"
+      :editorRef="editorRef"
+      v-model:showSettings="showSettings"
+      @settings-saved="handleSettingsSaved"
+    />
 
     <!-- 主编辑器区域 -->
-    <div v-else class="editor-container">
+    <div v-if="!showSettings" class="editor-container">
       <!-- 文件上传预览区 -->
       <div v-if="uploadedFiles.length > 0" class="upload-preview">
         <div v-for="file in uploadedFiles" :key="file.id" class="upload-item">
@@ -200,41 +60,87 @@
             <span class="tag-count" v-if="tagCounts[tag]">({{ tagCounts[tag] }})</span>
           </div>
         </div>
+        
+        <!-- 添加预览面板 -->
+        <div v-if="showPreview && settings.enablePreview" class="preview-panel">
+          <div class="preview-content" v-html="previewContent"></div>
+        </div>
+        
+        <!-- 添加统计信息 -->
+        <div v-if="settings.showWordCount" class="stats-panel">
+          <span>字数: {{ wordCount }}</span>
+          <span>字符: {{ charCount }}</span>
+          <span>行数: {{ lineCount }}</span>
+        </div>
       </div>
       
       <div class="toolbar">
-        <div class="left-tools">
-          <button title="标题" @click="insertMarkdown('#')">#</button>
-          <button title="列表" @click="insertMarkdown('- ')"><i class="fas fa-list"></i></button>
+        <!-- Markdown 操作菜单 -->
+        <div class="markdown-tools">
+          <button title="标题 (Ctrl+H)" @click="insertMarkdown('# ')"><i class="fas fa-heading"></i></button>
+          <button title="粗体 (Ctrl+B)" @click="insertMarkdown('**', '**')"><i class="fas fa-bold"></i></button>
+          <button title="斜体 (Ctrl+I)" @click="insertMarkdown('*', '*')"><i class="fas fa-italic"></i></button>
+          <button title="删除线" @click="insertMarkdown('~~', '~~')"><i class="fas fa-strikethrough"></i></button>
+          <span class="divider"></span>
+          <button title="无序列表" @click="insertMarkdown('- ')"><i class="fas fa-list-ul"></i></button>
+          <button title="有序列表" @click="insertMarkdown('1. ')"><i class="fas fa-list-ol"></i></button>
+          <button title="任务列表" @click="insertMarkdown('- [ ] ')"><i class="fas fa-tasks"></i></button>
+          <span class="divider"></span>
           <button title="引用" @click="insertMarkdown('> ')"><i class="fas fa-quote-right"></i></button>
-          <button title="链接" @click="insertMarkdown('[链接文字](url)')"><i class="fas fa-link"></i></button>
-          <label class="upload-btn" title="上传图片">
-            <i class="fas fa-image"></i>
-            <input 
-              type="file" 
-              accept="image/*" 
-              multiple 
-              @change="handleFileUpload"
-              style="display: none"
-            >
-          </label>
-          <label class="upload-btn" title="上传文件">
-            <i class="fas fa-paperclip"></i>
-            <input 
-              type="file" 
-              multiple 
-              @change="handleFileUpload"
-              style="display: none"
-            >
-          </label>
+          <button title="代码块" @click="insertCodeBlock"><i class="fas fa-code"></i></button>
+          <button title="表格" @click="insertTable"><i class="fas fa-table"></i></button>
+          <button title="链接 (Ctrl+K)" @click="insertMarkdown('[', '](url)')"><i class="fas fa-link"></i></button>
+          <button title="分割线" @click="insertMarkdown('\n---\n')"><i class="fas fa-minus"></i></button>
         </div>
-        <div class="right-tools">
-          <select v-model="visibility">
-            <option value="PUBLIC">所有人可见</option>
-            <option value="PRIVATE">仅自己可见</option>
-            <option value="PROTECTED">登录可见</option>
-          </select>
-          <button class="submit-btn" @click="submitMemo">记下</button>
+        
+        <!-- 其他操作菜单 -->
+        <div class="action-tools">
+          <div class="left-tools">
+            <label class="upload-btn" title="上传图片">
+              <i class="fas fa-image"></i>
+              <input 
+                type="file" 
+                accept="image/*" 
+                multiple 
+                @change="handleFileUpload"
+                style="display: none"
+              >
+            </label>
+            <label class="upload-btn" title="上传文件">
+              <i class="fas fa-paperclip"></i>
+              <input 
+                type="file" 
+                multiple 
+                @change="handleFileUpload"
+                style="display: none"
+              >
+            </label>
+            <button 
+              class="preview-btn" 
+              :class="{ active: showPreview }"
+              @click="showPreview = !showPreview"
+              title="预览"
+            >
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="right-tools">
+            <TagSelector
+              v-model="selectedCustomTags"
+              :options="availableCustomTags"
+              placeholder="选择标签..."
+              @update:modelValue="handleCustomTagsChange"
+            />
+            <CustomSelect
+              v-model="visibility"
+              :options="[
+                { value: 'PUBLIC', label: '所有人可见' },
+                { value: 'PRIVATE', label: '仅自己可见' },
+                { value: 'PROTECTED', label: '登录可见' }
+              ]"
+            />
+            <button class="submit-btn" @click="submitMemo">记下</button>
+          </div>
         </div>
       </div>
 
@@ -244,57 +150,50 @@
         <span class="progress-text">上传中... {{ uploadProgress }}%</span>
       </div>
     </div>
-
-    <!-- Toast 提示组件 -->
-    <div v-if="toast.show" class="toast" :class="toast.type">
-      <i :class="toastIcon"></i>
-      <span>{{ toast.message }}</span>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useStorage } from '@vueuse/core'
+import { createApiService } from './api'
+import Setting from "./views/setting.vue"
+import { showToast } from './utils/toast'
+import TagSelector from './components/TagSelector.vue'
+import CustomSelect from './components/CustomSelect.vue'
 
 // 开发模式标志
 const isDev = ref(process.env.NODE_ENV === 'development')
 
+// 状态管理
 const showSettings = ref(false)
 const content = ref('')
 const visibility = ref('PUBLIC')
 const lastError = ref(null)
+const editorRef = ref(null)
+const showPreview = ref(false)
 
-// 扩展配置
+// 使用 useStorage 管理设置
 const settings = useStorage('memos-settings', {
   host: '',
   token: '',
-  apiVersion: 'v1', // 'v1' 对应 0.18 版本，'v2' 对应 0.24 版本
-  // 内容设置
+  apiVersion: 'v18',
   addSource: true,
   addTag: true,
   useQuote: true,
+  skipDefaultTags: false,
   defaultVisibility: 'PRIVATE',
   customTags: '',
   template: '{content}\n\n来源：[{title}]({url})',
-  // 快捷键设置
   enableShortcuts: true,
-  // 标签设置
-  tagBehavior: 'space',    // 'space' 或 'newline'
-  tagSpaceCount: 1,        // 空格或换行的数量
-  // 页面设置
+  tagBehavior: 'space',
+  tagSpaceCount: 1,
   width: 450,
   height: 300,
+  showWordCount: true,
+  enablePreview: true,
+  theme: 'light'
 })
-
-// 调试信息
-const debugInfo = computed(() => ({
-  settings: settings.value,
-  content: content.value,
-  visibility: visibility.value,
-  lastError: lastError.value,
-  isDev: isDev.value
-}))
 
 // 文件上传相关状态
 const uploadedFiles = ref([])
@@ -307,246 +206,95 @@ const tagCounts = ref({})
 const showTagSuggestions = ref(false)
 const activeTagIndex = ref(0)
 const currentTagInput = ref('')
-const editorRef = ref(null)
 
-// 计算标签结束符预览
-const tagEndingPreview = computed(() => {
-  const count = Math.min(Math.max(settings.value.tagSpaceCount, 1), 5)
-  const char = settings.value.tagBehavior === 'space' ? ' ' : '⏎'
-  return `#tag${char.repeat(count)}`
+// 添加自定义标签相关状态
+const selectedCustomTags = ref([])
+const availableCustomTags = ref([])
+
+// 标签选择相关状态
+const showTagDropdown = ref(false)
+const tagFilter = ref('')
+const tagInput = ref(null)
+
+// 过滤后的可用标签
+const filteredAvailableTags = computed(() => {
+  if (!tagFilter.value) return availableCustomTags.value
+  return availableCustomTags.value.filter(tag =>
+    tag.toLowerCase().includes(tagFilter.value.toLowerCase())
+  )
 })
 
-// 添加字数统计
-const wordCount = computed(() => {
-  return content.value.length
+// 计算属性
+const wordCount = computed(() => content.value.length)
+const charCount = computed(() => content.value.replace(/\s/g, '').length)
+const lineCount = computed(() => content.value.split('\n').length)
+const debugInfo = computed(() => ({
+  settings: settings.value,
+  content: content.value,
+  visibility: visibility.value,
+  lastError: lastError.value,
+  isDev: isDev.value
+}))
+
+// 添加预览内容计算属性
+const previewContent = computed(() => {
+  // 这里可以添加 Markdown 解析逻辑
+  return content.value
 })
 
-// Toast 提示状态
-const toast = ref({
-  show: false,
-  message: '',
-  type: 'success' // success, error, info
-})
-
-// 计算 Toast 图标
-const toastIcon = computed(() => {
-  const icons = {
-    success: 'fas fa-check-circle',
-    error: 'fas fa-exclamation-circle',
-    info: 'fas fa-info-circle'
-  }
-  return icons[toast.value.type]
-})
-
-// 显示 Toast 提示
-const showToast = (message, type = 'success') => {
-  toast.value = {
-    show: true,
-    message,
-    type
-  }
-  
-  // 3秒后自动隐藏
-  setTimeout(() => {
-    toast.value.show = false
-  }, 3000)
+// 方法
+const openSettings = () => {
+  showSettings.value = true
 }
 
-// API 处理函数
-const apiHandler = {
-  v1: {
-    async createMemo(content, visibility) {
-      const response = await fetch(`${settings.value.host}/api/v1/memo`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${settings.value.token}`
-        },
-        body: JSON.stringify({
-          content,
-          visibility
-        })
-      })
-      return response
-    },
-    async testConnection() {
-      try {
-        const response = await fetch(`${settings.value.host}/api/v1/status`, {
-          headers: {
-            'Authorization': `Bearer ${settings.value.token}`
-          }
-        })
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        console.log('API 状态:', data)
-        return response
-      } catch (error) {
-        console.error('API 测试错误:', error)
-        throw error
-      }
-    },
-    async uploadResource(file) {
-      const formData = new FormData()
-      formData.append('file', file)
+const handleSettingsSaved = async () => {
+  // 设置保存后的处理
+  visibility.value = settings.value.defaultVisibility
+  await fetchRemoteTags()
+}
 
-      const response = await fetch(`${settings.value.host}/api/v1/resource/blob`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${settings.value.token}`
-        },
-        body: formData
-      })
+// 获取远程标签列表
+const fetchRemoteTags = async () => {
+  if (!settings.value.host || !settings.value.token) return
 
-      if (!response.ok) {
-        throw new Error('上传失败')
-      }
-
-      const data = await response.json()
-      return {
-        id: data.id,
-        url: `${settings.value.host}/o/r/${data.id}/${data.name}`,
-        type: file.type,
-        name: file.name
-      }
-    },
-    async getTags() {
-      const response = await fetch(`${settings.value.host}/api/v1/tag`, {
-        headers: {
-          'Authorization': `Bearer ${settings.value.token}`
-        }
-      })
-      if (!response.ok) throw new Error('获取标签失败')
-      const data = await response.json()
-      return data
+  try {
+    const api = createApiService(settings.value.apiVersion)
+    const data = await api.getTags(settings.value.host, settings.value.token)
+    
+    // 处理不同版本的API返回格式
+    let remoteTags = []
+    if (settings.value.apiVersion === 'v18') {
+      remoteTags = data
+      // 更新标签计数
+      tagCounts.value = data.reduce((acc, tag) => {
+        acc[tag] = 1
+        return acc
+      }, {})
+    } else {
+      remoteTags = data.map(tag => tag.name)
+      // 更新标签计数
+      tagCounts.value = data.reduce((acc, tag) => {
+        acc[tag.name] = tag.count
+        return acc
+      }, {})
     }
-  },
-  v2: {
-    async createMemo(content, visibility) {
-      const response = await fetch(`${settings.value.host}/api/v1/memos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${settings.value.token}`
-        },
-        body: JSON.stringify({
-          content,
-          visibility,
-          createdTs: Date.now(),
-          relationList: [],
-          resourceIdList: []
-        })
-      })
-      return response
-    },
-    async testConnection() {
-      try {
-        const response = await fetch(`${settings.value.host}/api/v1/auth/status`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${settings.value.token}`
-          },
-          body: JSON.stringify({})
-        })
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        console.log('API 状态:', data)
-        
-        // 检查返回数据是否包含必要的字段
-        if (!data.name || !data.role) {
-          throw new Error('无效的 API 响应')
-        }
-        
-        // 检查用户状态
-        if (data.state !== 'NORMAL') {
-          throw new Error('用户状态异常')
-        }
-        
-        return { ok: true, data }
-      } catch (error) {
-        console.error('API 测试错误:', error)
-        throw error
-      }
-    },
-    async uploadResource(file) {
-      const formData = new FormData()
-      formData.append('file', file)
 
-      const response = await fetch(`${settings.value.host}/api/v1/resources`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${settings.value.token}`
-        },
-        body: formData
-      })
+    // 获取设置中的自定义标签
+    const customTags = settings.value.customTags 
+      ? settings.value.customTags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      : []
 
-      if (!response.ok) {
-        throw new Error('上传失败')
-      }
-
-      const data = await response.json()
-      return {
-        id: data.id,
-        url: data.externalLink || `${settings.value.host}/o/r/${data.id}`,
-        type: file.type,
-        name: file.name
-      }
-    },
-    async getTags() {
-      const response = await fetch(`${settings.value.host}/api/v1/tag`, {
-        headers: {
-          'Authorization': `Bearer ${settings.value.token}`
-        }
-      })
-      if (!response.ok) throw new Error('获取标签失败')
-      const data = await response.json()
-      return data
-    }
+    // 合并远程标签和自定义标签，并更新 tags 数组
+    tags.value = [...new Set([...remoteTags, ...customTags])]
+    
+    // 更新可用标签列表
+    availableCustomTags.value = tags.value
+  } catch (error) {
+    console.error('获取标签失败:', error)
   }
 }
 
-// 格式化内容
-const formatContent = (text, sourceUrl, sourceTitle) => {
-  let formatted = text
-
-  // 使用引用格式
-  if (settings.value.useQuote) {
-    formatted = formatted.split('\n').map(line => `> ${line}`).join('\n')
-  }
-
-  // 添加来源信息
-  if (settings.value.addSource && sourceUrl && sourceTitle) {
-    const template = settings.value.template || '{content}\n\n来源：[{title}]({url})'
-    formatted = template
-      .replace('{content}', formatted)
-      .replace('{url}', sourceUrl)
-      .replace('{title}', sourceTitle)
-      .replace('{date}', new Date().toLocaleString())
-  }
-
-  // 添加自定义标签
-  if (settings.value.customTags) {
-    const tags = settings.value.customTags.split(',').map(tag => `#${tag.trim()}`).join(' ')
-    formatted = `${formatted}\n\n${tags}`
-  }
-
-  // 添加快速捕获标签
-  if (settings.value.addTag) {
-    formatted = `${formatted}\n\n#quick-capture`
-  }
-
-  return formatted
-}
-
-// 监听选中文本
+// 生命周期钩子
 onMounted(() => {
   // 设置默认可见性
   visibility.value = settings.value.defaultVisibility
@@ -572,106 +320,42 @@ onMounted(() => {
 
   // 添加快捷键支持
   if (settings.value.enableShortcuts) {
-    document.addEventListener('keydown', (e) => {
-      // Ctrl/Cmd + Shift + P: 切换可见性
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
-        e.preventDefault()
-        const visibilities = ['PUBLIC', 'PROTECTED', 'PRIVATE']
-        const currentIndex = visibilities.indexOf(visibility.value)
-        visibility.value = visibilities[(currentIndex + 1) % visibilities.length]
-      }
-    })
+    document.addEventListener('keydown', handleKeydown)
   }
 
-  fetchTags()
+  // 初始获取标签
+  fetchRemoteTags()
+
+  // 点击外部关闭下拉框
+  document.addEventListener('click', (e) => {
+    const container = document.querySelector('.custom-tags-selector')
+    if (container && !container.contains(e.target)) {
+      showTagDropdown.value = false
+    }
+  })
 })
 
-const saveSettings = async () => {
-  console.log('保存设置:', settings.value)
-  
-  if (!settings.value.host) {
-    showToast('主页网址不能为空', 'error')
-    return
+// 监听设置变化
+watch(() => settings.value, async (newSettings) => {
+  if (newSettings.host && newSettings.token) {
+    await fetchRemoteTags()
   }
-  if (!settings.value.token) {
-    showToast('Access Token 不能为空', 'error')
-    return
-  }
+}, { deep: true })
 
-  try {
-    // 测试 API 连接
-    const isConnected = await testConnection()
-    if (isConnected) {
-      showSettings.value = false
-      showToast('设置保存成功')
-      // 保存成功后刷新标签
-      await fetchTags()
-    }
-  } catch (error) {
-    console.error('保存设置失败:', error)
-    showToast(`保存失败: ${error.message}`, 'error')
-  }
-}
-
-const testConnection = async () => {
-  try {
-    const api = apiHandler[settings.value.apiVersion]
-    const result = await api.testConnection()
-    
-    if (!result.ok) {
-      throw new Error('API 连接失败')
-    }
-    
-    const data = result.data
-    console.log('API 状态:', data)
-    
-    // 版本检查
-    if (settings.value.apiVersion === 'v2') {
-      // 检查 0.24 版本特有的字段
-      if (!data.name || !data.role) {
-        throw new Error('API 版本不兼容')
-      }
-    }
-    
-    return true
-  } catch (error) {
-    console.error('API 测试错误:', error)
-    lastError.value = error.message
-    showToast(`连接测试失败: ${error.message}`, 'error')
-    return false
-  }
-}
-
-// 增强的 Markdown 插入函数
-const insertMarkdown = (prefix, suffix = '') => {
-  const textarea = editorRef.value
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  const text = content.value
-  
-  // 获取选中的文本
-  const selection = text.substring(start, end)
-  
-  // 如果有选中文本，在其前后添加标记
-  if (selection) {
-    content.value = text.substring(0, start) + prefix + selection + suffix + text.substring(end)
-    // 保持选中状态
-    nextTick(() => {
-      textarea.setSelectionRange(
-        start + prefix.length,
-        end + prefix.length
-      )
-    })
+// 监听设置变化
+watch(() => settings.value.enableShortcuts, (newVal) => {
+  if (newVal) {
+    document.addEventListener('keydown', handleKeydown)
   } else {
-    // 如果没有选中文本，插入标记并将光标置于中间
-    content.value = text.substring(0, start) + prefix + suffix + text.substring(end)
-    const newCursorPos = start + prefix.length
-    nextTick(() => {
-      textarea.setSelectionRange(newCursorPos, newCursorPos)
-    })
+    document.removeEventListener('keydown', handleKeydown)
   }
-  textarea.focus()
-}
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('click', () => {})
+})
 
 // 插入代码块
 const insertCodeBlock = () => {
@@ -698,13 +382,17 @@ const handleFileUpload = async (event) => {
 
   try {
     isUploading.value = true
-    const api = apiHandler[settings.value.apiVersion]
+    const api = createApiService(settings.value.apiVersion)
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       uploadProgress.value = Math.round((i / files.length) * 100)
       
-      const uploadedFile = await api.uploadResource(file)
+      const uploadedFile = await api.uploadResource(
+        settings.value.host,
+        settings.value.token,
+        file
+      )
       uploadedFiles.value.push(uploadedFile)
       
       // 根据文件类型插入不同的 Markdown
@@ -810,7 +498,7 @@ const removeFile = (fileId) => {
   }
 }
 
-// 修改提交函数以包含资源ID
+// 修改提交函数
 const submitMemo = async () => {
   console.log('准备提交内容:', {
     content: content.value,
@@ -826,11 +514,31 @@ const submitMemo = async () => {
   }
 
   try {
-    const api = apiHandler[settings.value.apiVersion]
+    const api = createApiService(settings.value.apiVersion)
     const resourceIds = uploadedFiles.value.map(file => file.id)
     
+    // 处理自定义标签
+    let finalContent = content.value
+    
+    // 检查内容中是否已经包含标签
+    const hasExistingTags = /#[^\s#]+/.test(finalContent)
+    
+    // 只有在没有标签或未启用跳过默认标签时才添加默认标签
+    if (settings.value.customTags && (!hasExistingTags || !settings.value.skipDefaultTags)) {
+      const tags = settings.value.customTags.split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag)
+      
+      if (tags.length > 0) {
+        const tagsString = tags.map(tag => `#${tag}`).join(' ')
+        finalContent = `${finalContent}\n${tagsString}`
+      }
+    }
+    
     const response = await api.createMemo(
-      content.value, 
+      settings.value.host,
+      settings.value.token,
+      finalContent,
       visibility.value,
       resourceIds
     )
@@ -850,31 +558,35 @@ const submitMemo = async () => {
   }
 }
 
-// 获取所有标签
-const fetchTags = async () => {
-  try {
-    const api = apiHandler[settings.value.apiVersion]
-    const data = await api.getTags()
-    
-    // 处理不同版本的API返回格式
-    if (settings.value.apiVersion === 'v1') {
-      tags.value = data
-      // v1版本可能没有标签计数，设置默认值1
-      tagCounts.value = data.reduce((acc, tag) => {
-        acc[tag] = 1
-        return acc
-      }, {})
-    } else {
-      // v2版本的标签数据处理
-      tags.value = data.map(tag => tag.name)
-      tagCounts.value = data.reduce((acc, tag) => {
-        acc[tag.name] = tag.count
-        return acc
-      }, {})
-    }
-  } catch (error) {
-    console.error('获取标签失败:', error)
+// 增强的 Markdown 插入函数
+const insertMarkdown = (prefix, suffix = '') => {
+  const textarea = editorRef.value
+  const start = textarea.selectionStart
+  const end = textarea.selectionEnd
+  const text = content.value
+  
+  // 获取选中的文本
+  const selection = text.substring(start, end)
+  
+  // 如果有选中文本，在其前后添加标记
+  if (selection) {
+    content.value = text.substring(0, start) + prefix + selection + suffix + text.substring(end)
+    // 保持选中状态
+    nextTick(() => {
+      textarea.setSelectionRange(
+        start + prefix.length,
+        end + prefix.length
+      )
+    })
+  } else {
+    // 如果没有选中文本，插入标记并将光标置于中间
+    content.value = text.substring(0, start) + prefix + suffix + text.substring(end)
+    const newCursorPos = start + prefix.length
+    nextTick(() => {
+      textarea.setSelectionRange(newCursorPos, newCursorPos)
+    })
   }
+  textarea.focus()
 }
 
 // 处理输入事件
@@ -907,16 +619,26 @@ const filteredTags = computed(() => {
 
 // 处理键盘事件
 const handleKeydown = (e) => {
-  if (!showTagSuggestions.value) return
+  if (!showTagSuggestions.value || filteredTags.value.length === 0) return
   
   switch (e.key) {
-    case 'ArrowDown':
-      e.preventDefault()
-      activeTagIndex.value = (activeTagIndex.value + 1) % filteredTags.value.length
-      break
     case 'ArrowUp':
       e.preventDefault()
-      activeTagIndex.value = (activeTagIndex.value - 1 + filteredTags.value.length) % filteredTags.value.length
+      if (activeTagIndex.value === filteredTags.value.length - 1) {
+        // 如果是最后一项，跳转到第一项
+        activeTagIndex.value = 0
+      } else {
+        activeTagIndex.value = (activeTagIndex.value + 1) % filteredTags.value.length
+      }
+      break
+    case 'ArrowDown':
+      e.preventDefault()
+      if (activeTagIndex.value === 0) {
+        // 如果是第一项，跳转到最后一项
+        activeTagIndex.value = filteredTags.value.length - 1
+      } else {
+        activeTagIndex.value = (activeTagIndex.value - 1 + filteredTags.value.length) % filteredTags.value.length
+      }
       break
     case 'Enter':
     case 'Tab':
@@ -1055,6 +777,95 @@ watch(() => [settings.value.width, settings.value.height], ([newWidth, newHeight
   document.documentElement.style.width = `${newWidth}px`
   document.documentElement.style.height = `${newHeight}px`
 }, { immediate: true })
+
+// 监听内容变化，同步标签
+watch(content, (newContent) => {
+  // 从内容中提取标签
+  const contentTags = newContent.match(/#[^\s#]+/g) || []
+  const normalizedTags = contentTags.map(tag => tag.slice(1)) // 去掉 # 前缀
+  
+  // 更新选中的标签（只同步已存在的标签）
+  selectedCustomTags.value = normalizedTags.filter(tag => 
+    availableCustomTags.value.includes(tag)
+  )
+}, { immediate: true })
+
+// 处理标签选择变化
+const handleCustomTagsChange = () => {
+  // 获取当前内容中的所有标签
+  const contentTags = content.value.match(/#[^\s#]+/g) || []
+  const normalizedTags = contentTags.map(tag => tag.slice(1))
+  
+  // 移除未选中的标签
+  const tagsToRemove = normalizedTags.filter(tag => 
+    !selectedCustomTags.value.includes(tag) && 
+    availableCustomTags.value.includes(tag)
+  )
+  
+  // 添加新选中的标签
+  const tagsToAdd = selectedCustomTags.value.filter(tag => 
+    !normalizedTags.includes(tag)
+  )
+  
+  // 更新内容
+  let newContent = content.value
+  tagsToRemove.forEach(tag => {
+    newContent = newContent.replace(`#${tag}`, '')
+  })
+  tagsToAdd.forEach(tag => {
+    newContent = newContent + (newContent.endsWith('\n') ? '' : '\n') + `#${tag}`
+  })
+  
+  // 清理多余的空行
+  newContent = newContent.replace(/\n{3,}/g, '\n\n')
+  content.value = newContent
+}
+
+// 切换标签选择状态
+const toggleTag = (tag) => {
+  const index = selectedCustomTags.value.indexOf(tag)
+  if (index === -1) {
+    selectedCustomTags.value.push(tag)
+  } else {
+    selectedCustomTags.value.splice(index, 1)
+  }
+  handleCustomTagsChange()
+}
+
+// 移除标签
+const removeTag = (tag) => {
+  const index = selectedCustomTags.value.indexOf(tag)
+  if (index !== -1) {
+    selectedCustomTags.value.splice(index, 1)
+    handleCustomTagsChange()
+  }
+}
+
+// 过滤标签
+const filterTags = () => {
+  showTagDropdown.value = true
+}
+
+// 格式化内容
+const formatContent = (text, url, title) => {
+  let formattedContent = text
+
+  // 如果启用了引用格式
+  if (settings.value.useQuote) {
+    formattedContent = `> ${formattedContent.replace(/\n/g, '\n> ')}`
+  }
+
+  // 如果启用了来源
+  if (settings.value.addSource && url) {
+    const sourceText = settings.value.template
+      .replace('{content}', formattedContent)
+      .replace('{url}', url)
+      .replace('{title}', title || '')
+    formattedContent = sourceText
+  }
+
+  return formattedContent
+}
 </script>
 
 <style scoped>
@@ -1194,18 +1005,57 @@ textarea {
 
 .toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
   padding: 8px 0;
 }
 
-.left-tools button {
-  margin-right: 8px;
-  padding: 4px 8px;
+.markdown-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-tools button {
+  padding: 6px;
   background: none;
   border: none;
+  border-radius: 4px;
   cursor: pointer;
   color: #666;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
+
+.markdown-tools button:hover {
+  background: #fff;
+  color: #10B981;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: #ddd;
+  margin: 0 4px;
+}
+
+.action-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.left-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .right-tools {
@@ -1214,20 +1064,20 @@ textarea {
   gap: 8px;
 }
 
-select {
-  padding: 4px 8px;
-  border: 1px solid #ddd;
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  cursor: pointer;
+  color: #666;
   border-radius: 4px;
+  transition: all 0.2s;
 }
 
-.submit-btn {
-  padding: 6px 16px;
-  background: #10B981;
-  color: white;
-  border: none;
-  width: 130px;
-  border-radius: 4px;
-  cursor: pointer;
+.upload-btn:hover {
+  background: #f5f5f5;
+  color: #10B981;
 }
 
 /* 调试信息样式 */
@@ -1322,15 +1172,6 @@ select {
   padding: 0;
 }
 
-.upload-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 8px;
-  cursor: pointer;
-  color: #666;
-}
-
 .upload-progress {
   margin-top: 8px;
   background: #f5f5f5;
@@ -1381,16 +1222,28 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: all 0.2s ease;
 }
 
 .tag-item:hover,
 .tag-item.active {
-  background: #f5f5f5;
+  background: #f0f9f6;
+  color: #10B981;
+}
+
+.tag-item.active {
+  background: #10B981;
+  color: white;
+}
+
+.tag-item.active .tag-count {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .tag-count {
   color: #666;
   font-size: 12px;
+  transition: color 0.2s ease;
 }
 
 .number-input {
@@ -1479,46 +1332,219 @@ select {
   opacity: 0.9;
 }
 
-/* Toast 提示样式 */
-.toast {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 24px;
-  border-radius: 8px;
+.custom-tags-selector {
+  position: relative;
+  margin-right: 8px;
+  min-width: 200px;
+}
+
+.tag-input-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px;
+  min-height: 32px;
   background: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: text;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.tag-input-container:focus-within {
+  border-color: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag-item {
+  background: #e5e7eb;
+  border-radius: 2px;
+  padding: 2px 6px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.remove-tag {
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: #666;
+}
+
+.remove-tag:hover {
+  color: #333;
+}
+
+.tag-filter {
+  border: none;
+  outline: none;
+  flex: 1;
+  min-width: 60px;
+  font-size: 14px;
+  padding: 2px;
+}
+
+.tag-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  animation: slideDown 0.3s ease-out;
-  z-index: 1000;
 }
 
-.toast.success {
+.dropdown-item:hover {
+  background: #f5f5f5;
+}
+
+.dropdown-item.selected {
+  background: #f0f9f6;
+}
+
+.check-mark {
+  color: #10B981;
+  font-weight: bold;
+}
+
+/* 滚动条样式 */
+.tag-suggestions::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tag-suggestions::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.tag-suggestions::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}
+
+.tag-suggestions::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
+}
+
+.submit-btn {
+  padding: 8px 16px;
+  background: #10B981;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  min-width: 80px;
+}
+
+.submit-btn:hover {
+  background: #0D9F6E;
+}
+
+/* 添加主题相关样式 */
+.memos-extension.dark {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.memos-extension.dark .content-editor {
+  background: #2d2d2d;
+  color: #fff;
+  border-color: #404040;
+}
+
+/* 添加预览面板样式 */
+.preview-panel {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background: #f9f9f9;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.dark .preview-panel {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.preview-content {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 添加统计信息样式 */
+.stats-panel {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  gap: 16px;
+}
+
+.dark .stats-panel {
+  background: #2d2d2d;
+  color: #999;
+}
+
+/* 添加预览按钮样式 */
+.preview-btn {
+  padding: 6px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.preview-btn:hover {
+  background: #f5f5f5;
+  color: #10B981;
+}
+
+.preview-btn.active {
   background: #10B981;
   color: white;
 }
 
-.toast.error {
-  background: #EF4444;
-  color: white;
+.dark .preview-btn {
+  color: #999;
 }
 
-.toast.info {
-  background: #3B82F6;
-  color: white;
+.dark .preview-btn:hover {
+  background: #404040;
 }
 
-@keyframes slideDown {
-  from {
-    transform: translate(-50%, -100%);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, 0);
-    opacity: 1;
-  }
+.dark .preview-btn.active {
+  background: #10B981;
+  color: white;
 }
 </style> 
