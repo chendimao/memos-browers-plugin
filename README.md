@@ -6,8 +6,8 @@ Memos Quick Note - 您的智能笔记助手  快速捕捉灵感，轻松管理�
 
 示例图片：
 
-基础页面：
+### 基础页面：
 ![PixPin_2025-04-23_18-03-40](https://github.com/user-attachments/assets/b3aca06c-5e60-430c-afd9-2e749c524fca)
 
-设置页面：
+### 设置页面：
 ![PixPin_2025-04-23_18-05-42](https://github.com/user-attachments/assets/0591a744-bbaf-44ce-9205-cf4e89b2533c)
