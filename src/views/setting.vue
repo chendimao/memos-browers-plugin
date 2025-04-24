@@ -171,6 +171,17 @@
 
       <h2>页面设置</h2>
       <div class="form-group">
+        <label>默认视图</label>
+        <CustomSelect
+          v-model="localSettings.defaultView"
+          :options="[
+            { value: 'editor', label: '编辑器' },
+            { value: 'list', label: '列表' }
+          ]"
+          :disabled="isLoading"
+        />
+      </div>
+      <div class="form-group">
         <label>宽度 (px)</label>
         <div class="number-input">
           <button 
