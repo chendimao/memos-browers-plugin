@@ -2,8 +2,17 @@
   <div class="memos-extension" :class="settings.theme" :style="{ width: settings.width + 'px', height: settings.height + 'px' }">
     <header>
       <h1>MEMOS</h1>
-      <div class="settings-icon" @click="openSettings">
-        <i class="fas fa-cog"></i>
+      <div class="header-actions">
+        <button 
+          class="view-switch-btn" 
+          @click="switchView"
+          :title="currentView === 'editor' ? '切换到列表' : '切换到编辑器'"
+        >
+          <i :class="currentView === 'editor' ? 'fas fa-list' : 'fas fa-edit'"></i>
+        </button>
+        <div class="settings-icon" @click="openSettings">
+          <i class="fas fa-cog"></i>
+        </div>
       </div>
     </header>
 
@@ -18,137 +27,137 @@
 
     <!-- 主编辑器区域 -->
     <div v-if="!showSettings" class="editor-container">
-      <!-- 文件上传预览区 -->
-      <div v-if="uploadedFiles.length > 0" class="upload-preview">
-        <div v-for="file in uploadedFiles" :key="file.id" class="upload-item">
-          <div class="upload-content">
-            <img v-if="file.type.startsWith('image/')" :src="file.url" :alt="file.name">
-            <div v-else class="file-info">
-              <i class="fas fa-file"></i>
-              <span>{{ file.name }}</span>
+      <template v-if="currentView === 'editor'">
+        <!-- 文件上传预览区 -->
+        <div v-if="uploadedFiles.length > 0" class="upload-preview">
+          <div v-for="file in uploadedFiles" :key="file.id" class="upload-item">
+            <div class="upload-content">
+              <img v-if="file.type.startsWith('image/')" :src="file.url" :alt="file.name">
+              <div v-else class="file-info">
+                <i class="fas fa-file"></i>
+                <span>{{ file.name }}</span>
+              </div>
             </div>
-          </div>
-          <button class="remove-file" @click="removeFile(file.id)">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="editor-wrapper">
-        <textarea
-          v-model="content"
-          placeholder="现在的想法是..."
-          class="content-editor"
-          @keydown.ctrl.enter.prevent="submitMemo"
-          @keydown.meta.enter.prevent="submitMemo"
-          @drop.prevent="handleDrop"
-          @paste="handlePaste"
-          @input="handleInput"
-          @keydown="handleKeydown"
-          ref="editorRef"
-        ></textarea>
-        
-        <!-- 标签补全弹窗 -->
-        <div v-if="showTagSuggestions && filteredTags.length > 0" class="tag-suggestions">
-          <div
-            v-for="(tag, index) in filteredTags"
-            :key="tag"
-            :class="['tag-item', { active: index === activeTagIndex }]"
-            @click="selectTag(tag)"
-          >
-            #{{ tag }}
-            <span class="tag-count" v-if="tagCounts[tag]">({{ tagCounts[tag] }})</span>
-          </div>
-        </div>
-        
-        <!-- 添加预览面板 -->
-        <div v-if="showPreview && settings.enablePreview" class="preview-panel">
-          <div class="preview-content" v-html="previewContent"></div>
-        </div>
-        
-        <!-- 添加统计信息 -->
-        <div v-if="settings.showWordCount" class="stats-panel">
-          <span>字数: {{ wordCount }}</span>
-          <span>字符: {{ charCount }}</span>
-          <span>行数: {{ lineCount }}</span>
-        </div>
-      </div>
-      
-      <div class="toolbar">
-        <!-- Markdown 操作菜单 -->
-        <div class="markdown-tools">
-          <button title="标题 (Ctrl+H)" @click="insertMarkdown('# ')"><i class="fas fa-heading"></i></button>
-          <button title="粗体 (Ctrl+B)" @click="insertMarkdown('**', '**')"><i class="fas fa-bold"></i></button>
-          <button title="斜体 (Ctrl+I)" @click="insertMarkdown('*', '*')"><i class="fas fa-italic"></i></button>
-          <button title="删除线" @click="insertMarkdown('~~', '~~')"><i class="fas fa-strikethrough"></i></button>
-          <span class="divider"></span>
-          <button title="无序列表" @click="insertMarkdown('- ')"><i class="fas fa-list-ul"></i></button>
-          <button title="有序列表" @click="insertMarkdown('1. ')"><i class="fas fa-list-ol"></i></button>
-          <button title="任务列表" @click="insertMarkdown('- [ ] ')"><i class="fas fa-tasks"></i></button>
-          <span class="divider"></span>
-          <button title="引用" @click="insertMarkdown('> ')"><i class="fas fa-quote-right"></i></button>
-          <button title="代码块" @click="insertCodeBlock"><i class="fas fa-code"></i></button>
-          <button title="表格" @click="insertTable"><i class="fas fa-table"></i></button>
-          <button title="链接 (Ctrl+K)" @click="insertMarkdown('[', '](url)')"><i class="fas fa-link"></i></button>
-          <button title="分割线" @click="insertMarkdown('\n---\n')"><i class="fas fa-minus"></i></button>
-        </div>
-        
-        <!-- 其他操作菜单 -->
-        <div class="action-tools">
-          <div class="left-tools">
-            <label class="upload-btn" title="上传图片">
-              <i class="fas fa-image"></i>
-              <input 
-                type="file" 
-                accept="image/*" 
-                multiple 
-                @change="handleFileUpload"
-                style="display: none"
-              >
-            </label>
-            <label class="upload-btn" title="上传文件">
-              <i class="fas fa-paperclip"></i>
-              <input 
-                type="file" 
-                multiple 
-                @change="handleFileUpload"
-                style="display: none"
-              >
-            </label>
-            <button 
-              class="preview-btn" 
-              :class="{ active: showPreview }"
-              @click="showPreview = !showPreview"
-              title="预览"
-            >
-              <i class="fas fa-eye"></i>
+            <button class="remove-file" @click="removeFile(file.id)">
+              <i class="fas fa-times"></i>
             </button>
           </div>
-          <div class="right-tools">
-            <TagSelector
-              v-model="selectedCustomTags"
-              :options="availableCustomTags"
-              placeholder="选择标签..."
-              @update:modelValue="handleCustomTagsChange"
-            />
-            <CustomSelect
-              v-model="visibility"
-              :options="[
-                { value: 'PUBLIC', label: '所有人可见' },
-                { value: 'PRIVATE', label: '仅自己可见' },
-                { value: 'PROTECTED', label: '登录可见' }
-              ]"
-            />
-            <button class="submit-btn" @click="submitMemo">记下</button>
+        </div>
+
+        <div class="editor-wrapper">
+          <textarea
+            v-model="content"
+            placeholder="现在的想法是..."
+            class="content-editor"
+            @keydown.ctrl.enter.prevent="submitMemo"
+            @keydown.meta.enter.prevent="submitMemo"
+            @drop.prevent="handleDrop"
+            @paste="handlePaste"
+            @input="handleInput"
+            @keydown="handleKeydown"
+            ref="editorRef"
+          ></textarea>
+          
+          <!-- 标签补全弹窗 -->
+          <div v-if="showTagSuggestions && filteredTags.length > 0" class="tag-suggestions">
+            <div
+              v-for="(tag, index) in filteredTags"
+              :key="tag"
+              :class="['tag-item', { active: index === activeTagIndex }]"
+              @click="selectTag(tag)"
+            >
+              #{{ tag }}
+              <span class="tag-count" v-if="tagCounts[tag]">({{ tagCounts[tag] }})</span>
+            </div>
+          </div>
+          
+         
+          
+          <!-- 统计信息 -->
+          <div v-if="settings.showWordCount" class="stats-panel">
+            <span>字数: {{ wordCount }}</span>
+            <span>字符: {{ charCount }}</span>
+            <span>行数: {{ lineCount }}</span>
           </div>
         </div>
-      </div>
+        
+        <div class="toolbar">
+          <!-- Markdown 操作菜单 -->
+          <div class="markdown-tools">
+            <button title="标题 (Ctrl+H)" @click="insertMarkdown('# ')"><i class="fas fa-heading"></i></button>
+            <button title="粗体 (Ctrl+B)" @click="insertMarkdown('**', '**')"><i class="fas fa-bold"></i></button>
+            <button title="斜体 (Ctrl+I)" @click="insertMarkdown('*', '*')"><i class="fas fa-italic"></i></button>
+            <button title="删除线" @click="insertMarkdown('~~', '~~')"><i class="fas fa-strikethrough"></i></button>
+            <span class="divider"></span>
+            <button title="无序列表" @click="insertMarkdown('- ')"><i class="fas fa-list-ul"></i></button>
+            <button title="有序列表" @click="insertMarkdown('1. ')"><i class="fas fa-list-ol"></i></button>
+            <button title="任务列表" @click="insertMarkdown('- [ ] ')"><i class="fas fa-tasks"></i></button>
+            <span class="divider"></span>
+            <button title="引用" @click="insertMarkdown('> ')"><i class="fas fa-quote-right"></i></button>
+            <button title="代码块" @click="insertCodeBlock"><i class="fas fa-code"></i></button>
+            <button title="表格" @click="insertTable"><i class="fas fa-table"></i></button>
+            <button title="链接 (Ctrl+K)" @click="insertMarkdown('[', '](url)')"><i class="fas fa-link"></i></button>
+            <button title="分割线" @click="insertMarkdown('\n---\n')"><i class="fas fa-minus"></i></button>
+          </div>
+          
+          <!-- 其他操作菜单 -->
+          <div class="action-tools">
+            <div class="left-tools">
+              <label class="upload-btn" title="上传图片">
+                <i class="fas fa-image"></i>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  @change="handleFileUpload"
+                  style="display: none"
+                >
+              </label>
+              <label class="upload-btn" title="上传文件">
+                <i class="fas fa-paperclip"></i>
+                <input 
+                  type="file" 
+                  multiple 
+                  @change="handleFileUpload"
+                  style="display: none"
+                >
+              </label>
+               
+            </div>
+            <div class="right-tools">
+              <TagSelector
+                v-model="selectedCustomTags"
+                :options="availableCustomTags"
+                placeholder="选择标签..."
+                @update:modelValue="handleCustomTagsChange"
+              />
+              <CustomSelect
+                v-model="visibility"
+                :options="[
+                  { value: 'PUBLIC', label: '所有人可见' },
+                  { value: 'PRIVATE', label: '仅自己可见' },
+                  { value: 'PROTECTED', label: '登录可见' }
+                ]"
+              />
+              <button class="submit-btn" @click="submitMemo">记下</button>
+            </div>
+          </div>
+        </div>
 
-      <!-- 上传进度条 -->
-      <div v-if="isUploading" class="upload-progress">
-        <div class="progress-bar" :style="{ width: uploadProgress + '%' }"></div>
-        <span class="progress-text">上传中... {{ uploadProgress }}%</span>
-      </div>
+        <!-- 上传进度条 -->
+        <div v-if="isUploading" class="upload-progress">
+          <div class="progress-bar" :style="{ width: uploadProgress + '%' }"></div>
+          <span class="progress-text">上传中... {{ uploadProgress }}%</span>
+        </div>
+      </template>
+
+      <template v-else>
+        <MemosList
+          :settings="settings"
+          @switchToEditor="switchToEditor"
+          @editMemo="handleEditMemo"
+        />
+      </template>
     </div>
   </div>
 </template>
@@ -161,6 +170,7 @@ import Setting from "./views/setting.vue"
 import { showToast } from './utils/toast'
 import TagSelector from './components/TagSelector.vue'
 import CustomSelect from './components/CustomSelect.vue'
+import MemosList from './views/MemosList.vue'
 
 // 开发模式标志
 const isDev = ref(process.env.NODE_ENV === 'development')
@@ -171,7 +181,6 @@ const content = ref('')
 const visibility = ref('PUBLIC')
 const lastError = ref(null)
 const editorRef = ref(null)
-const showPreview = ref(false)
 
 // 使用 useStorage 管理设置
 const settings = useStorage('memos-settings', {
@@ -192,7 +201,8 @@ const settings = useStorage('memos-settings', {
   height: 300,
   showWordCount: true,
   enablePreview: true,
-  theme: 'light'
+  theme: 'light',
+  defaultView: 'editor'
 })
 
 // 文件上传相关状态
@@ -241,6 +251,9 @@ const previewContent = computed(() => {
   // 这里可以添加 Markdown 解析逻辑
   return content.value
 })
+
+// 视图状态
+const currentView = ref(settings.value.defaultView || 'editor')
 
 // 方法
 const openSettings = () => {
@@ -866,6 +879,31 @@ const formatContent = (text, url, title) => {
 
   return formattedContent
 }
+
+// 切换视图
+const switchView = () => {
+  currentView.value = currentView.value === 'editor' ? 'list' : 'editor'
+}
+
+// 切换到编辑器
+const switchToEditor = () => {
+  currentView.value = 'editor'
+}
+
+// 处理编辑备忘录
+const handleEditMemo = (memo) => {
+  content.value = memo.content
+  currentView.value = 'editor'
+  // 滚动到顶部
+  window.scrollTo(0, 0)
+}
+
+// 监听设置变化
+watch(() => settings.value.defaultView, (newVal) => {
+  if (newVal) {
+    currentView.value = newVal
+  }
+})
 </script>
 
 <style scoped>
@@ -982,6 +1020,11 @@ textarea {
 
 .editor-container {
   padding: 16px;
+  background: #fff;
+}
+
+.memos-extension.dark .editor-container {
+  background: #1a1a1a;
 }
 
 .editor-wrapper {
@@ -1470,52 +1513,218 @@ textarea {
   color: #fff;
 }
 
+.memos-extension.dark header {
+  border-bottom-color: #404040;
+}
+
+.memos-extension.dark h1 {
+  color: #fff;
+}
+
+.memos-extension.dark .settings-icon {
+  color: #999;
+}
+
+.memos-extension.dark .settings-icon:hover {
+  color: #fff;
+}
+
 .memos-extension.dark .content-editor {
   background: #2d2d2d;
   color: #fff;
   border-color: #404040;
 }
 
-/* 添加预览面板样式 */
-.preview-panel {
-  margin-top: 8px;
-  padding: 12px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  background: #f9f9f9;
-  max-height: 200px;
-  overflow-y: auto;
+.memos-extension.dark .content-editor::placeholder {
+  color: #666;
 }
 
-.dark .preview-panel {
+.memos-extension.dark .markdown-tools {
+  background: #2d2d2d;
+  border: 1px solid #404040;
+}
+
+.memos-extension.dark .markdown-tools button {
+  color: #999;
+}
+
+.memos-extension.dark .markdown-tools button:hover {
+  background: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .divider {
+  background: #404040;
+}
+
+.memos-extension.dark .upload-preview {
   background: #2d2d2d;
   border-color: #404040;
 }
 
-.preview-content {
-  font-size: 14px;
-  line-height: 1.6;
+.memos-extension.dark .upload-item {
+  border-color: #404040;
 }
 
-/* 添加统计信息样式 */
-.stats-panel {
-  margin-top: 8px;
-  padding: 4px 8px;
-  background: #f5f5f5;
-  border-radius: 4px;
-  font-size: 12px;
+.memos-extension.dark .file-info {
+  color: #999;
+}
+
+.memos-extension.dark .remove-file {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.memos-extension.dark .upload-progress {
+  background: #2d2d2d;
+}
+
+.memos-extension.dark .progress-text {
+  color: #999;
+}
+
+.memos-extension.dark .tag-suggestions {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.memos-extension.dark .tag-item {
+  color: #fff;
+}
+
+.memos-extension.dark .tag-item:hover {
+  background: #404040;
+}
+
+.memos-extension.dark .tag-item.active {
+  background: #10B981;
+  color: #fff;
+}
+
+.memos-extension.dark .tag-count {
+  color: #999;
+}
+
+.memos-extension.dark .stats-panel {
+  background: #2d2d2d;
+  color: #999;
+  border: 1px solid #404040;
+}
+
+.memos-extension.dark .toolbar {
+  border-top-color: #404040;
+}
+
+.memos-extension.dark .action-tools {
+  border-top-color: #404040;
+}
+
+.memos-extension.dark .upload-btn {
+  color: #999;
+}
+
+.memos-extension.dark .upload-btn:hover {
+  background: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .submit-btn {
+  background: #10B981;
+  color: #fff;
+}
+
+.memos-extension.dark .submit-btn:hover {
+  background: #0D9F6E;
+}
+
+/* 设置面板深色模式样式 */
+.memos-extension.dark .settings-panel {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.memos-extension.dark .form-group label {
+  color: #fff;
+}
+
+.memos-extension.dark input[type="text"],
+.memos-extension.dark input[type="password"],
+.memos-extension.dark select,
+.memos-extension.dark textarea {
+  background: #2d2d2d;
+  color: #fff;
+  border-color: #404040;
+}
+
+.memos-extension.dark input::placeholder {
   color: #666;
-  display: flex;
-  gap: 16px;
 }
 
-.dark .stats-panel {
+.memos-extension.dark .shortcut-list {
   background: #2d2d2d;
   color: #999;
 }
 
-/* 添加预览按钮样式 */
-.preview-btn {
+.memos-extension.dark .number-btn {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .number-btn:hover {
+  background: #404040;
+}
+
+.memos-extension.dark .count-input {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .preview-box {
+  background: #2d2d2d;
+  color: #999;
+}
+
+.memos-extension.dark .preview-content {
+  background: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .debug-info {
+  background: #2d2d2d;
+  color: #999;
+}
+
+.memos-extension.dark .debug-info pre {
+  color: #fff;
+}
+
+/* 滚动条样式 */
+.memos-extension.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.memos-extension.dark ::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+.memos-extension.dark ::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 4px;
+}
+
+.memos-extension.dark ::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.view-switch-btn {
   padding: 6px;
   background: none;
   border: none;
@@ -1525,26 +1734,17 @@ textarea {
   transition: all 0.2s;
 }
 
-.preview-btn:hover {
+.view-switch-btn:hover {
   background: #f5f5f5;
   color: #10B981;
 }
 
-.preview-btn.active {
-  background: #10B981;
-  color: white;
-}
-
-.dark .preview-btn {
+.memos-extension.dark .view-switch-btn {
   color: #999;
 }
 
-.dark .preview-btn:hover {
+.memos-extension.dark .view-switch-btn:hover {
   background: #404040;
-}
-
-.dark .preview-btn.active {
-  background: #10B981;
-  color: white;
+  color: #fff;
 }
 </style> 

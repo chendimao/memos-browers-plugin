@@ -265,6 +265,20 @@
       <div v-if="isDev" class="debug-info">
         <pre>{{ debugInfo }}</pre>
       </div>
+
+      <div class="form-group checkbox">
+        <input type="checkbox" id="showWordCount" v-model="localSettings.showWordCount">
+        <label for="showWordCount">显示字数统计</label>
+      </div>
+ 
+
+      <div class="form-group">
+        <label>主题</label>
+        <select v-model="localSettings.theme">
+          <option value="light">浅色</option>
+          <option value="dark">深色</option>
+        </select>
+      </div>
     </div>
 </template>
 
