@@ -1,39 +1,101 @@
 <template>
-  <div class="memos-list">
-    <div class="list-header">
-      <h2>我的备忘录</h2>
-      <div class="list-actions">
-        <button class="refresh-btn" @click="refreshMemos" title="刷新">
-          <i class="fas fa-sync-alt"></i>
-        </button>
-        <button class="new-memo-btn" @click="switchToEditor" title="新建">
-          <i class="fas fa-plus"></i>
+  <div class="memos-list-wrapper">
+    <div class="memos-list">
+      <!-- 标签列表 -->
+      <div v-if="settings.tagFilterStyle === 'list'" class="tag-list-container">
+        <div class="tag-list" :class="{ expanded: isTagsExpanded }">
+          <button 
+            class="tag-item" 
+            :class="{ active: !selectedTag }"
+            @click="selectTag(null)"
+          >
+            全部
+          </button>
+          <button
+            v-for="tag in sortedTags"
+            :key="tag"
+            class="tag-item"
+            :class="{ 
+              active: selectedTag === tag,
+              preferred: settings.preferredTags?.includes(tag)
+            }"
+            @click="selectTag(tag)"
+          >
+            {{ tag }}
+            <!-- <span class="tag-count" v-if="tagCounts[tag]">({{ tagCounts[tag] }})</span> -->
+          </button>
+        </div>
+        <button 
+          class="expand-tags" 
+          :class="{ expanded: isTagsExpanded }"
+          @click="toggleTagsExpand"
+        >
+          {{ isTagsExpanded ? '收起' : '展开' }}
+          <i class="fas fa-chevron-down"></i>
         </button>
       </div>
-    </div>
 
-    <div class="memos-container">
-      <div v-if="loading" class="loading">
-        <i class="fas fa-spinner fa-spin"></i>
-        <span>加载中...</span>
-      </div>
-      <div v-else-if="memos.length === 0" class="empty-state">
-        <i class="fas fa-sticky-note"></i>
-        <p>暂无备忘录</p>
-      </div>
-      <div v-else class="memos">
-        <div v-for="memo in memos" :key="memo.id" class="memo-item">
-          <div class="memo-content" v-html="formatContent(memo.content)"></div>
-          <div class="memo-meta">
-            <span class="memo-time">{{ formatTime(memo.createdTs) }}</span>
-            <div class="memo-actions">
-              <button class="edit-btn" @click="editMemo(memo)" title="编辑">
-                <i class="fas fa-edit"></i>
+      <div class="list-header">
+        <div class="filters">
+          <div class="filters-row">
+            <TagSelector
+              v-if="settings.tagFilterStyle === 'selector'"
+              :modelValue="selectedTag ? [selectedTag] : []"
+              :options="tags"
+              placeholder="选择标签..."
+              @update:modelValue="handleTagChange"
+            />
+            <div class="search-box">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索内容..."
+                class="search-input"
+              >
+              <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="actions">
+              <button class="refresh-btn" @click="refreshMemos" :disabled="isLoading">
+                <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }"></i>
               </button>
-              <button class="delete-btn" @click="deleteMemo(memo)" title="删除">
-                <i class="fas fa-trash"></i>
+              <button class="create-btn" @click="switchToEditor">
+                <i class="fas fa-plus"></i>
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="memos-container" 
+           :style="{ maxHeight: settings.listMaxHeight + 'px' }"
+           @scroll="handleScroll"
+           ref="memosContainerRef">
+        <div v-if="isLoading" class="loading">
+          <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <div v-else-if="memos.length === 0" class="empty-state">
+          {{ searchQuery ? '没有找到匹配的备忘录' : '暂无备忘录' }}
+        </div>
+        <div v-else class="memo-list">
+          <div v-for="memo in memos" :key="memo.id" class="memo-item">
+            <div class="memo-content" v-html="formatContent(memo.content)"></div>
+            <div class="memo-meta">
+              <span class="memo-time">{{ formatTime(memo.createdTs) }}</span>
+              <span class="memo-visibility">
+                <i :class="getVisibilityIcon(memo.visibility)"></i>
+              </span>
+              <div class="memo-actions">
+                <button class="edit-btn" @click="editMemo(memo)">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="delete-btn" @click="deleteMemo(memo.id)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-if="hasMore" class="loading-more">
+            <i class="fas fa-spinner fa-spin"></i> 加载更多...
           </div>
         </div>
       </div>
@@ -41,9 +103,11 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
 import { createApiService } from '../api'
+import CustomSelect from '../components/CustomSelect.vue'
+import TagSelector from '../components/TagSelector.vue'
 import { showToast } from '../utils/toast'
 import { marked } from 'marked'
 
@@ -56,62 +120,33 @@ const props = defineProps({
 
 const emits = defineEmits(['switchToEditor', 'editMemo'])
 
+// 状态管理
 const memos = ref([])
-const loading = ref(false)
+const isLoading = ref(false)
+const visibilityFilter = ref('all')
+const searchQuery = ref('')
+const tags = ref([])
+const tagCounts = ref({})
+const selectedTag = ref(null)
+const page = ref(1)
+const limit = 20
+const isTagsExpanded = ref(false)
+const memosContainerRef = ref(null)
+const hasMore = ref(true)
+const isLoadingMore = ref(false)
 
-// 获取备忘录列表
-const fetchMemos = async () => {
-  if (!props.settings.host || !props.settings.token) {
-    showToast('请先配置 Memos 设置', 'error')
-    return
+// 获取可见性图标
+const getVisibilityIcon = (visibility) => {
+  switch (visibility) {
+    case 'PUBLIC':
+      return 'fas fa-globe'
+    case 'PRIVATE':
+      return 'fas fa-lock'
+    case 'PROTECTED':
+      return 'fas fa-user-shield'
+    default:
+      return 'fas fa-question'
   }
-
-  loading.value = true
-  try {
-    const api = createApiService(props.settings.apiVersion)
-    const data = await api.getMemos(props.settings.host, props.settings.token)
-    memos.value = data
-  } catch (error) {
-    console.error('获取备忘录失败:', error)
-    showToast('获取备忘录失败: ' + error.message, 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 刷新备忘录列表
-const refreshMemos = () => {
-  fetchMemos()
-}
-
-// 编辑备忘录
-const editMemo = (memo) => {
-  emits('editMemo', memo)
-}
-
-// 删除备忘录
-const deleteMemo = async (memo) => {
-  if (!confirm('确定要删除这条备忘录吗？')) return
-
-  try {
-    const api = createApiService(props.settings.apiVersion)
-    await api.deleteMemo(props.settings.host, props.settings.token, memo.id)
-    showToast('删除成功')
-    refreshMemos()
-  } catch (error) {
-    console.error('删除备忘录失败:', error)
-    showToast('删除失败: ' + error.message, 'error')
-  }
-}
-
-// 切换到编辑器
-const switchToEditor = () => {
-  emits('switchToEditor')
-}
-
-// 格式化内容（支持 Markdown）
-const formatContent = (content) => {
-  return marked(content)
 }
 
 // 格式化时间
@@ -120,109 +155,445 @@ const formatTime = (timestamp) => {
   return date.toLocaleString()
 }
 
+// 格式化内容
+const formatContent = (content) => {
+  // 处理 Markdown 格式
+  return marked(content)
+}
+
+// 获取标签列表
+const fetchTags = async () => {
+  if (!props.settings.host || !props.settings.token) return
+
+  try {
+    const api = createApiService(props.settings.apiVersion)
+    const data = await api.getTags(props.settings.host, props.settings.token)
+    
+    if (props.settings.apiVersion === 'v18') {
+      tags.value = data || []
+      // 更新标签计数
+      tagCounts.value = (data || []).reduce((acc, tag) => {
+        acc[tag] = 1
+        return acc
+      }, {})
+    } else {
+      tags.value = (data || []).map(tag => tag.name)
+      // 更新标签计数
+      tagCounts.value = (data || []).reduce((acc, tag) => {
+        acc[tag.name] = tag.count || 1
+        return acc
+      }, {})
+    }
+  } catch (error) {
+    console.error('获取标签失败:', error)
+    showToast('获取标签失败: ' + error.message, 'error')
+    tags.value = []
+    tagCounts.value = {}
+  }
+}
+
+// 处理标签变化
+const handleTagChange = (tags) => {
+  selectedTag.value = tags && tags.length > 0 ? tags[0] : null
+  page.value = 1 // 重置页码
+  fetchMemos()
+}
+
+// 选择标签
+const selectTag = (tag) => {
+  selectedTag.value = tag
+  page.value = 1 // 重置页码
+  fetchMemos()
+}
+
+// 获取备忘录列表
+const fetchMemos = async () => {
+  if (!props.settings.host || !props.settings.token) return
+
+  isLoading.value = true
+  try {
+    const api = createApiService(props.settings.apiVersion)
+    const offset = 0 // 重置 offset
+    page.value = 1 // 重置页码
+    hasMore.value = true // 重置加载更多状态
+    
+    const response = await api.getMemos(
+      props.settings.host,
+      props.settings.token,
+      {
+        offset,
+        limit,
+        visibility: props.settings.visibilityFilter,
+        content: searchQuery.value,
+        tag: selectedTag.value
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('获取备忘录失败')
+    }
+
+    const data = await response.json()
+    
+    // 检查是否还有更多数据
+    if (data.length < limit) {
+      hasMore.value = false
+    }
+    
+    memos.value = data
+  } catch (error) {
+    console.error('获取备忘录失败:', error)
+    showToast('获取备忘录失败: ' + error.message, 'error')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 刷新备忘录列表
+const refreshMemos = () => {
+  fetchMemos()
+}
+
+// 删除备忘录
+const deleteMemo = async (id) => {
+  if (!confirm('确定要删除这条备忘录吗？')) return
+
+  try {
+    const api = createApiService(props.settings.apiVersion)
+    await api.deleteMemo(props.settings.host, props.settings.token, id)
+    showToast('删除成功')
+    fetchMemos()
+  } catch (error) {
+    console.error('删除备忘录失败:', error)
+    showToast('删除失败：' + error.message, 'error')
+  }
+}
+
+// 编辑备忘录
+const editMemo = (memo) => {
+  emits('editMemo', memo)
+}
+
+// 切换到编辑器
+const switchToEditor = () => {
+  emits('switchToEditor')
+}
+
+// 监听搜索查询变化
+watch(searchQuery, () => {
+  fetchMemos()
+})
+
+// 监听标签选择变化
+watch(selectedTag, () => {
+  fetchMemos()
+})
+
+// 监听设置变化
+watch(() => props.settings, () => {
+  fetchMemos()
+  fetchTags()
+}, { deep: true })
+
+// 生命周期钩子
 onMounted(() => {
   fetchMemos()
+  fetchTags()
+})
+
+// 计算属性：控制标签列表的样式
+const tagListStyle = computed(() => ({
+  maxHeight: isTagsExpanded.value ? 'none' : '64px', // 约两行的高度
+  overflow: 'hidden',
+  transition: 'max-height 0.3s ease'
+}))
+
+// 计算属性：是否显示展开按钮
+const shouldShowExpandButton = computed(() => {
+  return tags.value.length > 10 // 假设超过10个标签就需要展开按钮
+})
+
+// 切换标签列表展开状态
+const toggleTagsExpand = () => {
+  isTagsExpanded.value = !isTagsExpanded.value
+}
+
+// 处理滚动事件
+const handleScroll = async (e) => {
+  if (!hasMore.value || isLoading.value || isLoadingMore.value) return
+
+  const container = e.target
+  // 当距离底部小于 50px 时加载更多
+  if (container.scrollHeight - container.scrollTop - container.clientHeight < 50) {
+    await loadMore()
+  }
+}
+
+// 加载更多数据
+const loadMore = async () => {
+  if (!hasMore.value || isLoadingMore.value) return
+
+  isLoadingMore.value = true
+  try {
+    const api = createApiService(props.settings.apiVersion)
+    const offset = (page.value) * limit
+    const response = await api.getMemos(
+      props.settings.host,
+      props.settings.token,
+      {
+        offset,
+        limit,
+        visibility: props.settings.visibilityFilter,
+        content: searchQuery.value,
+        tag: selectedTag.value
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('获取备忘录失败')
+    }
+
+    const data = await response.json()
+    
+    // 如果返回的数据少于 limit，说明没有更多数据了
+    if (data.length < limit) {
+      hasMore.value = false
+    }
+
+    // 将新数据添加到现有数据后面
+    memos.value = [...memos.value, ...data]
+    page.value++
+  } catch (error) {
+    console.error('加载更多备忘录失败:', error)
+    showToast('加载更多失败: ' + error.message, 'error')
+  } finally {
+    isLoadingMore.value = false
+  }
+}
+
+// 计算属性：排序后的标签列表
+const sortedTags = computed(() => {
+  if (!props.settings.preferredTags || props.settings.preferredTags.length === 0) {
+    return tags.value
+  }
+
+  const preferredTags = props.settings.preferredTags
+  const otherTags = tags.value.filter(tag => !preferredTags.includes(tag))
+  
+  return [...preferredTags, ...otherTags]
 })
 </script>
 
-<style scoped>
-.memos-list {
+<style>
+.memos-list-wrapper {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.memos-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.tag-list-container {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #eee;
+  position: relative;
+  margin-right: 1px;
+  z-index: 1;
 }
 
 .list-header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #eee;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 100;
+  padding: 0 16px;
 }
 
-.list-header h2 {
-  margin: 0;
-  font-size: 18px;
-  color: #333;
-}
-
-.list-actions {
+.filters {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  position: relative;
+  margin-top: 10px ;
+  z-index: 100;
 }
 
-.refresh-btn,
-.new-memo-btn {
-  padding: 6px;
-  background: none;
-  border: none;
+.filters-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-box {
+  position: relative;
+  min-width: 200px;
+  max-width: 300px;
+  flex: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  cursor: pointer;
-  color: #666;
+  font-size: 14px;
   transition: all 0.2s;
 }
 
+.search-input:focus {
+  border-color: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+  outline: none;
+}
+
+.search-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  pointer-events: none;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.refresh-btn,
+.create-btn {
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #f3f4f6;
+  color: #666;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
 .refresh-btn:hover,
-.new-memo-btn:hover {
-  background: #f5f5f5;
-  color: #10B981;
+.create-btn:hover {
+  background: #e5e7eb;
+  color: #333;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .memos-container {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  overflow-x: hidden;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.memo-list {
+  padding: 8px;
 }
 
 .loading {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   height: 100%;
   color: #666;
 }
 
-.loading i {
-  font-size: 24px;
-  margin-bottom: 8px;
-}
-
 .empty-state {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   height: 100%;
-  color: #999;
-}
-
-.empty-state i {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.memos {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  color: #666;
 }
 
 .memo-item {
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.2s;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
 }
 
-.memo-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.memo-item:last-child {
+  border-bottom: none;
 }
 
 .memo-content {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   line-height: 1.6;
+  position: relative;
+  z-index: 1;
+}
+
+.memo-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 8px 0;
+  border-radius: 4px;
+  object-fit: contain;
+  max-height: 300px;
+  width: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* 新增标签样式 */
+.memo-content :deep(a[href^="#"]) {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #f0f9f6;
+  color: #10B981;
+  border-radius: 12px;
+  font-size: 12px;
+  margin: 0 4px 4px 0;
+  text-decoration: none;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.memo-content :deep(a[href^="#"]:hover) {
+  background: #10B981;
+  color: white;
+  border-color: #10B981;
+}
+
+/* 深色模式下的标签样式 */
+.memos-extension.dark .memo-content :deep(a[href^="#"]) {
+  background: #2d2d2d;
+  color: #10B981;
+  border: 1px solid #404040;
+}
+
+.memos-extension.dark .memo-content :deep(a[href^="#"]:hover) {
+  background: #10B981;
+  color: white;
+  border-color: #10B981;
 }
 
 .memo-meta {
@@ -230,7 +601,15 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   font-size: 12px;
-  color: #999;
+  color: #666;
+}
+
+.memo-time {
+  flex: 1;
+}
+
+.memo-visibility {
+  margin: 0 8px;
 }
 
 .memo-actions {
@@ -241,56 +620,61 @@ onMounted(() => {
 .edit-btn,
 .delete-btn {
   padding: 4px;
-  background: none;
   border: none;
-  border-radius: 4px;
+  background: none;
   cursor: pointer;
   color: #666;
   transition: all 0.2s;
 }
 
 .edit-btn:hover {
-  background: #f0f9f6;
   color: #10B981;
 }
 
 .delete-btn:hover {
-  background: #fef2f2;
   color: #EF4444;
 }
 
-/* 深色模式样式 */
-.memos-extension.dark .list-header {
-  border-bottom-color: #404040;
+.tag {
+  color: #10B981;
+  font-weight: 500;
 }
 
-.memos-extension.dark .list-header h2 {
+/* 深色模式样式 */
+.memos-extension.dark .memos-container {
+  background: #1a1a1a;
+  border-color: #404040;
+}
+
+.memos-extension.dark .search-input {
+  background: #2d2d2d;
+  border-color: #404040;
   color: #fff;
 }
 
+.memos-extension.dark .search-input:focus {
+  border-color: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+.memos-extension.dark .search-icon {
+  color: #999;
+}
+
 .memos-extension.dark .refresh-btn,
-.memos-extension.dark .new-memo-btn {
+.memos-extension.dark .create-btn {
+  background: #2d2d2d;
   color: #999;
 }
 
 .memos-extension.dark .refresh-btn:hover,
-.memos-extension.dark .new-memo-btn:hover {
+.memos-extension.dark .create-btn:hover {
   background: #404040;
   color: #fff;
 }
 
-.memos-extension.dark .loading,
-.memos-extension.dark .empty-state {
-  color: #999;
-}
-
 .memos-extension.dark .memo-item {
-  background: #2d2d2d;
-  border-color: #404040;
-}
-
-.memos-extension.dark .memo-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border-bottom-color: #404040;
 }
 
 .memos-extension.dark .memo-content {
@@ -307,12 +691,226 @@ onMounted(() => {
 }
 
 .memos-extension.dark .edit-btn:hover {
-  background: #404040;
   color: #10B981;
 }
 
 .memos-extension.dark .delete-btn:hover {
-  background: #404040;
   color: #EF4444;
+}
+
+.memos-extension.dark .tag {
+  color: #10B981;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 32px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.tag-list.expanded {
+  max-height: none;
+}
+
+.tag-item {
+  padding: 2px 8px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.tag-item:hover {
+  background: #f0f9f6;
+  border-color: #10B981;
+  color: #10B981;
+}
+
+.tag-item.active {
+  background: #10B981;
+  border-color: #10B981;
+  color: white;
+}
+
+/* 优先展示标签的样式 */
+.tag-item.preferred {
+  background: #f0f9f6;
+  border: 1px dashed #10B981;
+  color: #10B981;
+  font-weight: 500;
+  position: relative;
+}
+
+.tag-item.preferred:hover {
+  background: #e6f7f3;
+  border-style: solid;
+}
+
+.tag-item.preferred.active {
+  background: #10B981;
+  border-style: solid;
+  color: white;
+  font-weight: 600;
+}
+
+/* 深色模式样式 */
+.memos-extension.dark .tag-item {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #999;
+}
+
+.memos-extension.dark .tag-item:hover {
+  background: #404040;
+  border-color: #10B981;
+  color: #10B981;
+}
+
+.memos-extension.dark .tag-item.active {
+  background: #10B981;
+  color: white;
+  border-color: #10B981;
+}
+
+.memos-extension.dark .tag-item.preferred {
+  background: #2d2d2d;
+  border: 1px dashed #10B981;
+  color: #10B981;
+}
+
+.memos-extension.dark .tag-item.preferred:hover {
+  background: #363636;
+  border-style: solid;
+}
+
+.memos-extension.dark .tag-item.preferred.active {
+  background: #10B981;
+  border-style: solid;
+  color: white;
+}
+
+.tag-count {
+  font-size: 10px;
+  color: #999;
+  background: #f5f5f5;
+  padding: 0 4px;
+  border-radius: 8px;
+}
+
+.tag-item.active .tag-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.expand-tags {
+  position: absolute;
+  right: 0px;
+  top: 8px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  transition: color 0.2s;
+}
+
+.expand-tags:hover {
+  color: #10B981;
+}
+
+.expand-tags i {
+  font-size: 10px;
+  transition: transform 0.3s ease;
+}
+
+.expand-tags.expanded i {
+  transform: rotate(180deg);
+}
+
+/* 深色模式样式 */
+.memos-extension.dark .tag-list {
+  background: #1a1a1a;
+  border-bottom-color: #404040;
+}
+
+.memos-extension.dark .tag-item {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #999;
+}
+
+.memos-extension.dark .tag-item:hover {
+  background: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .tag-item.active {
+  background: #10B981;
+  color: white;
+  border-color: #10B981;
+}
+
+/* 确保 TagSelector 的下拉菜单能够正确显示 */
+:deep(.tag-selector) {
+  position: relative;
+  z-index: 3;
+}
+
+:deep(.tag-selector-options) {
+  z-index: 1000;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 深色模式下的下拉菜单样式 */
+.memos-extension.dark :deep(.tag-selector-options) {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark :deep(.tag-selector-option:hover) {
+  background: #404040;
+}
+
+.memos-extension.dark :deep(.tag-selector-option.selected) {
+  background: #10B981;
+  color: white;
+}
+
+.loading-more {
+  text-align: center;
+  padding: 12px;
+  color: #666;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.memos-extension.dark .loading-more {
+  color: #999;
 }
 </style> 

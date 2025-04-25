@@ -1,11 +1,11 @@
 <template>
-  <div class="memos-extension" :class="settings.theme" :style="{ width: settings.width + 'px', height: settings.height + 'px' }">
+  <div class="memos-extension" :class="settings.theme" :style="containerStyle">
     <header>
       <h1>MEMOS</h1>
       <div class="header-actions">
         <button 
           class="view-switch-btn" 
-          @click="switchView"
+          @click="currentView === 'editor' ? switchToList() : switchToEditor()"
           :title="currentView === 'editor' ? '切换到列表' : '切换到编辑器'"
         >
           <i :class="currentView === 'editor' ? 'fas fa-list' : 'fas fa-edit'"></i>
@@ -15,154 +15,161 @@
         </div>
       </div>
     </header>
-
-    <!-- 设置面板 -->
-    <Setting
+   <!-- 设置面板 -->
+   <Setting
       v-model:content="content"
       v-model:settings="settings"
       :editorRef="editorRef"
       v-model:showSettings="showSettings"
       @settings-saved="handleSettingsSaved"
     />
-
-    <!-- 主编辑器区域 -->
-    <div v-if="!showSettings" class="editor-container">
+    <template  v-if="!showSettings" >
       <template v-if="currentView === 'editor'">
-        <!-- 文件上传预览区 -->
-        <div v-if="uploadedFiles.length > 0" class="upload-preview">
-          <div v-for="file in uploadedFiles" :key="file.id" class="upload-item">
-            <div class="upload-content">
-              <img v-if="file.type.startsWith('image/')" :src="file.url" :alt="file.name">
-              <div v-else class="file-info">
-                <i class="fas fa-file"></i>
-                <span>{{ file.name }}</span>
-              </div>
-            </div>
-            <button class="remove-file" @click="removeFile(file.id)">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
+     
 
-        <div class="editor-wrapper">
-          <textarea
-            v-model="content"
-            placeholder="现在的想法是..."
-            class="content-editor"
-            @keydown.ctrl.enter.prevent="submitMemo"
-            @keydown.meta.enter.prevent="submitMemo"
-            @drop.prevent="handleDrop"
-            @paste="handlePaste"
-            @input="handleInput"
-            @keydown="handleKeydown"
-            ref="editorRef"
-          ></textarea>
+     <!-- 主编辑器区域 -->
+     <div   class="editor-container">
+       
+         <!-- 文件上传预览区 -->
+         <div v-if="uploadedFiles.length > 0" class="upload-preview">
+           <div v-for="file in uploadedFiles" :key="file.id" class="upload-item">
+             <div class="upload-content">
+               <img v-if="file.type.startsWith('image/')" :src="file.url" :alt="file.name">
+               <div v-else class="file-info">
+                 <i class="fas fa-file"></i>
+                 <span>{{ file.name }}</span>
+               </div>
+             </div>
+             <button class="remove-file" @click="removeFile(file.id)">
+               <i class="fas fa-times"></i>
+             </button>
+           </div>
+         </div>
+ 
+         <div class="editor-wrapper">
+           <textarea
+             v-model="content"
+             placeholder="现在的想法是..."
+             class="content-editor"
+             @keydown.ctrl.enter.prevent="submitMemo"
+             @keydown.meta.enter.prevent="submitMemo"
+             @drop.prevent="handleDrop"
+             @paste="handlePaste"
+             @input="handleInput"
+             @keydown="handleKeydown"
+             ref="editorRef"
+           ></textarea>
+           
+           <!-- 标签补全弹窗 -->
+           <div v-if="showTagSuggestions && filteredTags.length > 0" class="tag-suggestions">
+             <div
+               v-for="(tag, index) in filteredTags"
+               :key="tag"
+               :class="['tag-item', { active: index === activeTagIndex }]"
+               @click="selectTag(tag)"
+             >
+               #{{ tag }}
+               <span class="tag-count" v-if="tagCounts[tag]">({{ tagCounts[tag] }})</span>
+             </div>
+           </div>
+           
           
-          <!-- 标签补全弹窗 -->
-          <div v-if="showTagSuggestions && filteredTags.length > 0" class="tag-suggestions">
-            <div
-              v-for="(tag, index) in filteredTags"
-              :key="tag"
-              :class="['tag-item', { active: index === activeTagIndex }]"
-              @click="selectTag(tag)"
-            >
-              #{{ tag }}
-              <span class="tag-count" v-if="tagCounts[tag]">({{ tagCounts[tag] }})</span>
-            </div>
-          </div>
-          
+           
+           <!-- 统计信息 -->
+           <div v-if="settings.showWordCount" class="stats-panel">
+             <span>字数: {{ wordCount }}</span>
+             <span>字符: {{ charCount }}</span>
+             <span>行数: {{ lineCount }}</span>
+           </div>
+         </div>
          
-          
-          <!-- 统计信息 -->
-          <div v-if="settings.showWordCount" class="stats-panel">
-            <span>字数: {{ wordCount }}</span>
-            <span>字符: {{ charCount }}</span>
-            <span>行数: {{ lineCount }}</span>
-          </div>
-        </div>
-        
-        <div class="toolbar">
-          <!-- Markdown 操作菜单 -->
-          <div class="markdown-tools">
-            <button title="标题 (Ctrl+H)" @click="insertMarkdown('# ')"><i class="fas fa-heading"></i></button>
-            <button title="粗体 (Ctrl+B)" @click="insertMarkdown('**', '**')"><i class="fas fa-bold"></i></button>
-            <button title="斜体 (Ctrl+I)" @click="insertMarkdown('*', '*')"><i class="fas fa-italic"></i></button>
-            <button title="删除线" @click="insertMarkdown('~~', '~~')"><i class="fas fa-strikethrough"></i></button>
-            <span class="divider"></span>
-            <button title="无序列表" @click="insertMarkdown('- ')"><i class="fas fa-list-ul"></i></button>
-            <button title="有序列表" @click="insertMarkdown('1. ')"><i class="fas fa-list-ol"></i></button>
-            <button title="任务列表" @click="insertMarkdown('- [ ] ')"><i class="fas fa-tasks"></i></button>
-            <span class="divider"></span>
-            <button title="引用" @click="insertMarkdown('> ')"><i class="fas fa-quote-right"></i></button>
-            <button title="代码块" @click="insertCodeBlock"><i class="fas fa-code"></i></button>
-            <button title="表格" @click="insertTable"><i class="fas fa-table"></i></button>
-            <button title="链接 (Ctrl+K)" @click="insertMarkdown('[', '](url)')"><i class="fas fa-link"></i></button>
-            <button title="分割线" @click="insertMarkdown('\n---\n')"><i class="fas fa-minus"></i></button>
-          </div>
-          
-          <!-- 其他操作菜单 -->
-          <div class="action-tools">
-            <div class="left-tools">
-              <label class="upload-btn" title="上传图片">
-                <i class="fas fa-image"></i>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  multiple 
-                  @change="handleFileUpload"
-                  style="display: none"
-                >
-              </label>
-              <label class="upload-btn" title="上传文件">
-                <i class="fas fa-paperclip"></i>
-                <input 
-                  type="file" 
-                  multiple 
-                  @change="handleFileUpload"
-                  style="display: none"
-                >
-              </label>
-               
-            </div>
-            <div class="right-tools">
-              <TagSelector
-                v-model="selectedCustomTags"
-                :options="availableCustomTags"
-                placeholder="选择标签..."
-                @update:modelValue="handleCustomTagsChange"
-              />
-              <CustomSelect
-                v-model="visibility"
-                :options="[
-                  { value: 'PUBLIC', label: '所有人可见' },
-                  { value: 'PRIVATE', label: '仅自己可见' },
-                  { value: 'PROTECTED', label: '登录可见' }
-                ]"
-              />
-              <button class="submit-btn" @click="submitMemo">记下</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 上传进度条 -->
-        <div v-if="isUploading" class="upload-progress">
-          <div class="progress-bar" :style="{ width: uploadProgress + '%' }"></div>
-          <span class="progress-text">上传中... {{ uploadProgress }}%</span>
-        </div>
-      </template>
-
-      <template v-else>
-        <MemosList
-          :settings="settings"
-          @switchToEditor="switchToEditor"
-          @editMemo="handleEditMemo"
-        />
-      </template>
-    </div>
+         <div class="toolbar">
+           <!-- Markdown 操作菜单 -->
+           <div class="markdown-tools">
+             <button title="标题 (Ctrl+H)" @click="insertMarkdown('# ')"><i class="fas fa-heading"></i></button>
+             <button title="粗体 (Ctrl+B)" @click="insertMarkdown('**', '**')"><i class="fas fa-bold"></i></button>
+             <button title="斜体 (Ctrl+I)" @click="insertMarkdown('*', '*')"><i class="fas fa-italic"></i></button>
+             <button title="删除线" @click="insertMarkdown('~~', '~~')"><i class="fas fa-strikethrough"></i></button>
+             <span class="divider"></span>
+             <button title="无序列表" @click="insertMarkdown('- ')"><i class="fas fa-list-ul"></i></button>
+             <button title="有序列表" @click="insertMarkdown('1. ')"><i class="fas fa-list-ol"></i></button>
+             <button title="任务列表" @click="insertMarkdown('- [ ] ')"><i class="fas fa-tasks"></i></button>
+             <span class="divider"></span>
+             <button title="引用" @click="insertMarkdown('> ')"><i class="fas fa-quote-right"></i></button>
+             <button title="代码块" @click="insertCodeBlock"><i class="fas fa-code"></i></button>
+             <button title="表格" @click="insertTable"><i class="fas fa-table"></i></button>
+             <button title="链接 (Ctrl+K)" @click="insertMarkdown('[', '](url)')"><i class="fas fa-link"></i></button>
+             <button title="分割线" @click="insertMarkdown('\n---\n')"><i class="fas fa-minus"></i></button>
+           </div>
+           
+           <!-- 其他操作菜单 -->
+           <div class="action-tools">
+             <div class="left-tools">
+               <label class="upload-btn" title="上传图片">
+                 <i class="fas fa-image"></i>
+                 <input 
+                   type="file" 
+                   accept="image/*" 
+                   multiple 
+                   @change="handleFileUpload"
+                   style="display: none"
+                 >
+               </label>
+               <label class="upload-btn" title="上传文件">
+                 <i class="fas fa-paperclip"></i>
+                 <input 
+                   type="file" 
+                   multiple 
+                   @change="handleFileUpload"
+                   style="display: none"
+                 >
+               </label>
+                
+             </div>
+             <div class="right-tools">
+               <TagSelector
+                 v-model="selectedCustomTags"
+                 :options="availableCustomTags"
+                 placeholder="选择标签..."
+                 @update:modelValue="handleCustomTagsChange"
+               />
+               <CustomSelect
+                 v-model="visibility"
+                 :options="[
+                   { value: 'PUBLIC', label: '所有人可见' },
+                   { value: 'PRIVATE', label: '仅自己可见' },
+                   { value: 'PROTECTED', label: '登录可见' }
+                 ]"
+               />
+               <button class="submit-btn" @click="submitMemo">记下</button>
+             </div>
+           </div>
+         </div>
+ 
+         <!-- 上传进度条 -->
+         <div v-if="isUploading" class="upload-progress">
+           <div class="progress-bar" :style="{ width: uploadProgress + '%' }"></div>
+           <span class="progress-text">上传中... {{ uploadProgress }}%</span>
+         </div> 
+ 
+      
+     </div>
+     </template>
+   
+  <template v-else>
+         <div class="list-view">
+           <MemosList
+             :settings="settings"
+             @switchToEditor="switchToEditor"
+             @editMemo="handleEditMemo"
+           />
+         </div>
+       </template>
+    </template>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useStorage } from '@vueuse/core'
 import { createApiService } from './api'
@@ -171,6 +178,9 @@ import { showToast } from './utils/toast'
 import TagSelector from './components/TagSelector.vue'
 import CustomSelect from './components/CustomSelect.vue'
 import MemosList from './views/MemosList.vue'
+
+// 定义 emit
+const emit = defineEmits(['refresh', 'switchToList'])
 
 // 开发模式标志
 const isDev = ref(process.env.NODE_ENV === 'development')
@@ -181,6 +191,9 @@ const content = ref('')
 const visibility = ref('PUBLIC')
 const lastError = ref(null)
 const editorRef = ref(null)
+const editingMemo = ref(null)
+const currentVisibility = ref('PUBLIC')
+const isSubmitting = ref(false)
 
 // 使用 useStorage 管理设置
 const settings = useStorage('memos-settings', {
@@ -197,8 +210,10 @@ const settings = useStorage('memos-settings', {
   enableShortcuts: true,
   tagBehavior: 'space',
   tagSpaceCount: 1,
-  width: 450,
-  height: 300,
+  width: 550,
+  height: 400,
+  listMaxHeight: 600,
+  settingHeight: 600,
   showWordCount: true,
   enablePreview: true,
   theme: 'light',
@@ -255,6 +270,30 @@ const previewContent = computed(() => {
 // 视图状态
 const currentView = ref(settings.value.defaultView || 'editor')
 
+// 计算属性来处理容器样式
+const containerStyle = computed(() => {
+  const baseStyle = {
+    width: settings.value.width + 'px'
+  }
+  
+  // 根据不同视图设置不同的高度
+  if (currentView.value === 'list') {
+    baseStyle.height = Math.min(settings.value.listMaxHeight, MAX_POPUP_HEIGHT) + 'px'
+  } else if (showSettings.value) {
+    baseStyle.height = Math.min(settings.value.settingHeight, MAX_POPUP_HEIGHT) + 'px'
+  } else {
+    // 编辑器视图使用设置中的高度作为最小值
+    baseStyle.minHeight = Math.min(settings.value.height, MAX_POPUP_HEIGHT) + 'px'
+    baseStyle.height = 'auto'
+  }
+  
+  return baseStyle
+})
+
+// 添加 Chrome 扩展窗口的尺寸限制常量
+const MAX_POPUP_WIDTH = 800
+const MAX_POPUP_HEIGHT = 600
+
 // 方法
 const openSettings = () => {
   showSettings.value = true
@@ -263,7 +302,29 @@ const openSettings = () => {
 const handleSettingsSaved = async () => {
   // 设置保存后的处理
   visibility.value = settings.value.defaultVisibility
+  
+  // 更新编辑器设置
+  if (settings.value.enableShortcuts) {
+    document.addEventListener('keydown', handleKeydown)
+  } else {
+    document.removeEventListener('keydown', handleKeydown)
+  }
+
+  // 更新标签
   await fetchRemoteTags()
+
+  // 更新视图
+  if (settings.value.defaultView) {
+    currentView.value = settings.value.defaultView
+  }
+
+  // 更新容器尺寸
+  nextTick(() => {
+    updateEditorHeight()
+  })
+
+  // 关闭设置面板
+  showSettings.value = false
 }
 
 // 获取远程标签列表
@@ -302,6 +363,17 @@ const fetchRemoteTags = async () => {
     
     // 更新可用标签列表
     availableCustomTags.value = tags.value
+
+    // 如果有缓存的标签，恢复它们
+    const cachedTags = localStorage.getItem('memos-cached-tags')
+    if (cachedTags) {
+      try {
+        const parsedTags = JSON.parse(cachedTags)
+        selectedCustomTags.value = parsedTags.filter(tag => tags.value.includes(tag))
+      } catch (e) {
+        console.error('解析缓存的标签失败:', e)
+      }
+    }
   } catch (error) {
     console.error('获取标签失败:', error)
   }
@@ -317,6 +389,8 @@ onMounted(() => {
     if (result.selectedText) {
       content.value = formatContent(result.selectedText, result.sourceUrl, result.sourceTitle)
       chrome.storage.local.remove(['selectedText', 'sourceUrl', 'sourceTitle'])
+      // 切换到编辑器视图
+      currentView.value = 'editor'
     }
   })
 
@@ -328,6 +402,8 @@ onMounted(() => {
         changes.sourceUrl.newValue,
         changes.sourceTitle.newValue
       )
+      // 切换到编辑器视图
+      currentView.value = 'editor'
     }
   })
 
@@ -345,6 +421,21 @@ onMounted(() => {
     if (container && !container.contains(e.target)) {
       showTagDropdown.value = false
     }
+  })
+
+  // 添加一个 ResizeObserver 来监听编辑器容器的大小变化
+  const resizeObserver = new ResizeObserver(() => {
+    updateEditorHeight()
+  })
+
+  const editorContainer = document.querySelector('.editor-container')
+  if (editorContainer) {
+    resizeObserver.observe(editorContainer)
+  }
+
+  // 在组件卸载时停止观察
+  onUnmounted(() => {
+    resizeObserver.disconnect()
   })
 })
 
@@ -504,70 +595,92 @@ const handlePaste = async (event) => {
 }
 
 // 移除文件
-const removeFile = (fileId) => {
+const removeFile = async (fileId) => {
   const index = uploadedFiles.value.findIndex(f => f.id === fileId)
   if (index !== -1) {
+    const file = uploadedFiles.value[index]
     uploadedFiles.value.splice(index, 1)
+    
+    // 从内容中删除对应的链接
+    if (file.type.startsWith('image/')) {
+      // 删除图片链接
+      const imagePattern = new RegExp(`!\\[([^\\]]*)\\]\\(${file.url}\\)`, 'g')
+      content.value = content.value.replace(imagePattern, '')
+    } else {
+      // 删除文件链接
+      const filePattern = new RegExp(`\\[${file.name}\\]\\(${file.url}\\)`, 'g')
+      content.value = content.value.replace(filePattern, '')
+    }
+    
+    // 清理可能产生的多余空行
+    content.value = content.value.replace(/\n{3,}/g, '\n\n')
+    
+    // 等待 DOM 更新后重新计算高度
+    await nextTick()
+    updateEditorHeight()
   }
 }
 
-// 修改提交函数
+// 合并提交和保存方法
 const submitMemo = async () => {
-  console.log('准备提交内容:', {
-    content: content.value,
-    visibility: visibility.value,
-    apiVersion: settings.value.apiVersion
-  })
-
-  if (!settings.value.host || !settings.value.token) {
-    console.error('配置无效')
-    showToast('请先配置 Memos 设置', 'error')
-    showSettings.value = true
+  if (!content.value.trim()) {
+    showToast('内容不能为空')
     return
   }
 
+  isSubmitting.value = true
   try {
     const api = createApiService(settings.value.apiVersion)
-    const resourceIds = uploadedFiles.value.map(file => file.id)
-    
-    // 处理自定义标签
-    let finalContent = content.value
-    
-    // 检查内容中是否已经包含标签
-    const hasExistingTags = /#[^\s#]+/.test(finalContent)
-    
-    // 只有在没有标签或未启用跳过默认标签时才添加默认标签
-    if (settings.value.customTags && (!hasExistingTags || !settings.value.skipDefaultTags)) {
-      const tags = settings.value.customTags.split(',')
-        .map(tag => tag.trim())
-        .filter(tag => tag)
-      
-      if (tags.length > 0) {
-        const tagsString = tags.map(tag => `#${tag}`).join(' ')
-        finalContent = `${finalContent}\n${tagsString}`
-      }
-    }
-    
-    const response = await api.createMemo(
-      settings.value.host,
-      settings.value.token,
-      finalContent,
-      visibility.value,
-      resourceIds
-    )
-    
-    if (response.ok) {
-      content.value = ''
-      uploadedFiles.value = [] // 清除已上传文件列表
-      showToast('保存成功！')
+    let response
+    const isEditMode = !!editingMemo.value
+
+    if (isEditMode) {
+      // 编辑模式
+      response = await api.updateMemo(
+        settings.value.host,
+        settings.value.token,
+        editingMemo.value.id,
+        {
+          content: content.value,
+          visibility: visibility.value,
+          resourceIdList: uploadedFiles.value.map(file => file.id)
+        }
+      )
+      showToast('更新成功')
     } else {
-      const responseData = await response.json()
-      showToast(`保存失败: ${responseData.message || response.statusText}`, 'error')
+      // 新建模式
+      response = await api.createMemo(
+        settings.value.host,
+        settings.value.token,
+        content.value,
+        visibility.value,
+        uploadedFiles.value.map(file => file.id)
+      )
+      showToast('创建成功')
+    }
+
+    if (!response.ok) {
+      throw new Error(isEditMode ? '更新失败' : '创建失败')
+    }
+
+    // 清空编辑器内容
+    content.value = ''
+    // 清空上传文件
+    uploadedFiles.value = []
+    // 重置编辑状态
+    editingMemo.value = null
+    // 刷新列表
+    emit('refresh')
+    
+    // 只在编辑模式下切换到列表视图
+    if (isEditMode) {
+      currentView.value = 'list'
     }
   } catch (error) {
-    console.error('提交错误:', error)
-    lastError.value = error.message
-    showToast(`保存失败：${error.message}`, 'error')
+    console.error(isEditMode ? '更新失败:' : '创建失败:', error)
+    showToast((isEditMode ? '更新失败: ' : '创建失败: ') + error.message, 'error')
+  } finally {
+    isSubmitting.value = false
   }
 }
 
@@ -708,10 +821,10 @@ const decrementCount = () => {
   }
 }
 
-// 页面尺寸调整方法
+// 修改页面尺寸调整方法
 const incrementWidth = () => {
-  if (settings.value.width < 800) {
-    settings.value.width += 50
+  if (settings.value.width < MAX_POPUP_WIDTH) {
+    settings.value.width = Math.min(settings.value.width + 50, MAX_POPUP_WIDTH)
   }
 }
 
@@ -722,8 +835,8 @@ const decrementWidth = () => {
 }
 
 const incrementHeight = () => {
-  if (settings.value.height < 600) {
-    settings.value.height += 50
+  if (settings.value.height < MAX_POPUP_HEIGHT) {
+    settings.value.height = Math.min(settings.value.height + 50, MAX_POPUP_HEIGHT)
   }
 }
 
@@ -733,63 +846,97 @@ const decrementHeight = () => {
   }
 }
 
-// 配置导入导出方法
-const exportSettings = () => {
-  const settingsData = {
-    ...settings.value,
-    // 移除一些不需要导出的属性
-    width: undefined,
-    height: undefined
+// 修改设置高度的方法
+const incrementSettingHeight = () => {
+  if (settings.value.settingHeight < MAX_POPUP_HEIGHT) {
+    settings.value.settingHeight = Math.min(settings.value.settingHeight + 50, MAX_POPUP_HEIGHT)
   }
-  const blob = new Blob([JSON.stringify(settingsData, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'memos-settings.json'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
 }
 
-const importSettings = (event) => {
-  const file = event.target.files[0]
-  if (!file) return
-
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    try {
-      const importedSettings = JSON.parse(e.target.result)
-      // 验证导入的配置是否有效
-      if (!importedSettings.host || !importedSettings.token) {
-        throw new Error('无效的配置文件')
-      }
-      
-      // 保留当前的页面尺寸设置
-      const currentWidth = settings.value.width
-      const currentHeight = settings.value.height
-      
-      // 更新设置
-      Object.assign(settings.value, importedSettings)
-      settings.value.width = currentWidth
-      settings.value.height = currentHeight
-      
-      showToast('配置导入成功！')
-    } catch (error) {
-      console.error('导入配置失败:', error)
-      showToast(`导入配置失败: ${error.message}`, 'error')
-    }
+const decrementSettingHeight = () => {
+  if (settings.value.settingHeight > 200) {
+    settings.value.settingHeight -= 50
   }
-  reader.readAsText(file)
-  event.target.value = '' // 清除文件选择
+}
+
+// 修改列表高度的方法
+const incrementListMaxHeight = () => {
+  if (settings.value.listMaxHeight < MAX_POPUP_HEIGHT) {
+    settings.value.listMaxHeight = Math.min(settings.value.listMaxHeight + 50, MAX_POPUP_HEIGHT)
+  }
+}
+
+const decrementListMaxHeight = () => {
+  if (settings.value.listMaxHeight > 200) {
+    settings.value.listMaxHeight -= 50
+  }
 }
 
 // 监听页面尺寸变化
-watch(() => [settings.value.width, settings.value.height], ([newWidth, newHeight]) => {
-  // 使用 document.documentElement.style 来设置弹窗尺寸
-  document.documentElement.style.width = `${newWidth}px`
-  document.documentElement.style.height = `${newHeight}px`
+watch([
+  () => settings.value.width, 
+  () => settings.value.height,
+  () => settings.value.listMaxHeight, 
+  () => settings.value.settingHeight,
+  () => currentView.value,
+  () => showSettings.value,
+  () => content.value
+], ([newWidth, newHeight, newListMaxHeight, newSettingHeight, newView, isShowingSettings]) => {
+  // 限制尺寸在 Chrome 扩展的最大限制内
+  const width = Math.min(newWidth, MAX_POPUP_WIDTH)
+  let height
+
+  if (isShowingSettings) {
+    height = Math.min(newSettingHeight, MAX_POPUP_HEIGHT)
+  } else if (newView === 'list') {
+    height = Math.min(newListMaxHeight, MAX_POPUP_HEIGHT)
+  } else {
+    // 编辑器视图 - 让它自适应内容高度，但不小于设置中的高度
+    const editorContainer = document.querySelector('.editor-container')
+    const contentEditor = document.querySelector('.content-editor')
+    const toolbar = document.querySelector('.toolbar')
+    const uploadPreview = document.querySelector('.upload-preview')
+    
+    if (editorContainer && contentEditor && toolbar) {
+      // 计算实际所需的总高度
+      const toolbarHeight = toolbar.offsetHeight
+      const uploadPreviewHeight = uploadPreview ? uploadPreview.offsetHeight : 0
+      const contentHeight = contentEditor.scrollHeight
+      const totalHeight = contentHeight + toolbarHeight + uploadPreviewHeight + 32 // 32 为 padding
+      
+      // 使用设置中的高度作为最小值
+      const minHeight = Math.min(newHeight, MAX_POPUP_HEIGHT)
+      // 取两者中的较大值，但不超过最大限制
+      height = Math.min(Math.max(totalHeight, minHeight), MAX_POPUP_HEIGHT)
+    } else {
+      height = Math.min(newHeight, MAX_POPUP_HEIGHT)
+    }
+  }
+  
+  // 设置 HTML 元素的高度
+  document.documentElement.style.width = `${width}px`
+  document.documentElement.style.height = `${height}px`
+  
+  // 同时设置 body 元素的高度
+  document.body.style.width = `${width}px`
+  document.body.style.height = `${height}px`
 }, { immediate: true })
+
+// 监听视图变化
+watch(() => currentView.value, (newView) => {
+  if (newView === 'editor') {
+    nextTick(() => {
+      updateEditorHeight()
+    })
+  }
+})
+
+// 监听设置变化
+watch(() => settings.value.defaultView, (newVal) => {
+  if (newVal) {
+    currentView.value = newVal
+  }
+})
 
 // 监听内容变化，同步标签
 watch(content, (newContent) => {
@@ -801,6 +948,9 @@ watch(content, (newContent) => {
   selectedCustomTags.value = normalizedTags.filter(tag => 
     availableCustomTags.value.includes(tag)
   )
+
+  // 缓存选中的标签
+  localStorage.setItem('memos-cached-tags', JSON.stringify(selectedCustomTags.value))
 }, { immediate: true })
 
 // 处理标签选择变化
@@ -832,6 +982,9 @@ const handleCustomTagsChange = () => {
   // 清理多余的空行
   newContent = newContent.replace(/\n{3,}/g, '\n\n')
   content.value = newContent
+
+  // 缓存选中的标签
+  localStorage.setItem('memos-cached-tags', JSON.stringify(selectedCustomTags.value))
 }
 
 // 切换标签选择状态
@@ -882,36 +1035,126 @@ const formatContent = (text, url, title) => {
 
 // 切换视图
 const switchView = () => {
+  if(showSettings.value) showSettings.value = false;
   currentView.value = currentView.value === 'editor' ? 'list' : 'editor'
 }
 
 // 切换到编辑器
 const switchToEditor = () => {
+  if(showSettings.value) showSettings.value = false;
   currentView.value = 'editor'
+  // 等待视图切换完成后再计算高度
+  nextTick(() => {
+    updateEditorHeight()
+  })
+}
+
+// 切换到列表视图
+const switchToList = () => {
+  // 如果是从编辑器切换到列表
+  if (currentView.value === 'editor') {
+    // 清空编辑器内容
+    content.value = ''
+    // 取消编辑模式
+    editingMemo.value = null
+    // 重置上传的文件
+    uploadedFiles.value = []
+  }
+  if(showSettings.value) showSettings.value = false;
+  currentView.value = 'list'
 }
 
 // 处理编辑备忘录
 const handleEditMemo = (memo) => {
+  editingMemo.value = memo
   content.value = memo.content
+  currentVisibility.value = memo.visibility
   currentView.value = 'editor'
-  // 滚动到顶部
-  window.scrollTo(0, 0)
 }
 
-// 监听设置变化
-watch(() => settings.value.defaultView, (newVal) => {
-  if (newVal) {
-    currentView.value = newVal
+// 更新高度的函数
+const updateEditorHeight = () => {
+  if (currentView.value === 'editor' && !showSettings.value) {
+    nextTick(() => {
+      const editorContainer = document.querySelector('.editor-container')
+      if (editorContainer) {
+        // 使用设置中的高度作为固定高度
+        const height = Math.min(settings.value.height, MAX_POPUP_HEIGHT)
+
+        // 更新所有相关元素的高度
+        requestAnimationFrame(() => {
+          editorContainer.style.height = `${height}px`
+          document.documentElement.style.height = `${height}px`
+          document.body.style.height = `${height}px`
+        })
+      }
+    })
   }
-})
+}
+
+// 监听上传文件列表变化
+watch(() => uploadedFiles.value, () => {
+  nextTick(() => {
+    updateEditorHeight()
+  })
+}, { deep: true })
 </script>
 
 <style scoped>
 .memos-extension {
-  width: 400px;
   min-height: 300px;
   background: #fff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: auto;
+  overflow: visible;
+  position: relative;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: auto !important;
+  min-height: 100%;
+}
+
+.editor-container {
+  padding: 16px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 300px;
+  overflow: visible;
+}
+
+.editor-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  flex: 1;
+  height: auto;
+}
+
+.content-editor {
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  resize: none;
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+  flex: 1;
 }
 
 header {
@@ -920,6 +1163,7 @@ header {
   align-items: center;
   padding: 12px 16px;
   border-bottom: 1px solid #eee;
+  flex-shrink: 0;
 }
 
 h1, h2 {
@@ -942,8 +1186,9 @@ h2 {
 .settings-panel {
   padding: 16px;
   position: relative;
-  min-height: 100%;
-  padding-bottom: 80px; /* 为固定按钮留出空间 */
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .form-group {
@@ -1018,39 +1263,17 @@ textarea {
   background: #0D9F6E;
 }
 
-.editor-container {
-  padding: 16px;
-  background: #fff;
-}
-
-.memos-extension.dark .editor-container {
-  background: #1a1a1a;
-}
-
-.editor-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.content-editor {
-  width: 100%;
-  height: 150px;
-  padding: 12px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  resize: none;
-  margin-bottom: 12px;
-  font-size: 14px;
-  line-height: 1.6;
-  position: relative;
-  z-index: 1;
-}
-
 .toolbar {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 8px 0;
+  background: #fff;
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
+  height: auto;
 }
 
 .markdown-tools {
@@ -1139,15 +1362,43 @@ textarea {
 }
 
 .upload-preview {
+  flex-shrink: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   margin-bottom: 12px;
-  max-height: 120px;
-  overflow-y: auto;
+  height: 100px;
+  min-height: 40px;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 8px;
   border: 1px solid #eee;
   border-radius: 4px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  display: none;
+}
+
+.upload-preview:not(:empty) {
+  display: flex;
+}
+
+.upload-preview::-webkit-scrollbar {
+  height: 6px;
+}
+
+.upload-preview::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.upload-preview::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+
+.upload-preview::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
 }
 
 .upload-item {
@@ -1157,6 +1408,8 @@ textarea {
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid #eee;
+  flex-shrink: 0;
+  display: inline-block;
 }
 
 .upload-content {
@@ -1257,6 +1510,14 @@ textarea {
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
+  margin-top: 4px;
+}
+
+/* 确保下拉框在内容上方显示 */
+.tag-suggestions {
+  position: fixed;
+  max-width: 550px;
+  transform: translateY(0);
 }
 
 .tag-item {
@@ -1746,5 +2007,68 @@ textarea {
 .memos-extension.dark .view-switch-btn:hover {
   background: #404040;
   color: #fff;
+}
+
+/* 确保所有元素都使用 border-box */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+.settings-wrapper {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 500px;
+  height: 100vh;
+  background: #fff;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.settings-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  z-index: 101;
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.settings-header .close-btn {
+  padding: 4px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: #666;
+  transition: color 0.2s;
+}
+
+.settings-header .close-btn:hover {
+  color: #333;
+}
+
+.list-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-view {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 </style> 

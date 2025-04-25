@@ -1,31 +1,39 @@
 <template>
-  <div class="custom-tags-selector" ref="selectorRef">
-    <div class="tag-input-container" @click="showTagDropdown = true">
+  <div class="tag-selector" ref="containerRef">
+    <div 
+      class="tag-input-container" 
+      @click="showDropdown = true"
+      @focusout="handleFocusOut"
+    >
       <div class="selected-tags">
-        <span v-for="tag in modelValue" 
-              :key="tag" 
-              class="tag-item">
-          {{ tag }}
+        <span v-for="tag in modelValue" :key="tag" class="tag-item">
+          #{{ tag }}
           <span class="remove-tag" @click.stop="removeTag(tag)">×</span>
         </span>
       </div>
       <input
-        type="text"
-        class="tag-filter"
+        ref="inputRef"
         v-model="tagFilter"
-        @input="filterTags"
+        class="tag-filter"
         :placeholder="placeholder"
-        ref="tagInput"
-      >
+        @keydown="handleKeydown"
+      />
     </div>
-    <div v-if="showTagDropdown" class="tag-dropdown">
-      <div v-for="tag in filteredAvailableTags"
-           :key="tag"
-           class="dropdown-item"
-           :class="{ 'selected': modelValue.includes(tag) }"
-           @click="toggleTag(tag)">
-        <span class="check-mark" v-if="modelValue.includes(tag)">✓</span>
-        {{ tag }}
+    <div 
+      v-if="showDropdown" 
+      class="tag-dropdown"
+      :class="{ 'dropdown-up': shouldShowUp }"
+      :style="dropdownStyle"
+    >
+      <div
+        v-for="tag in filteredOptions"
+        :key="tag"
+        class="dropdown-item"
+        :class="{ selected: modelValue.includes(tag) }"
+        @click="toggleTag(tag)"
+      >
+        #{{ tag }}
+        <span v-if="modelValue.includes(tag)" class="check-mark">✓</span>
       </div>
     </div>
   </div>
@@ -37,11 +45,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 const props = defineProps({
   modelValue: {
     type: Array,
-    required: true
+    default: () => []
   },
   options: {
     type: Array,
-    required: true
+    default: () => []
   },
   placeholder: {
     type: String,
@@ -51,30 +59,71 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-// 状态
-const showTagDropdown = ref(false)
+const containerRef = ref(null)
+const inputRef = ref(null)
+const showDropdown = ref(false)
 const tagFilter = ref('')
-const tagInput = ref(null)
-const selectorRef = ref(null)
 
-// 过滤后的可用标签
-const filteredAvailableTags = computed(() => {
+// 计算下拉框应该显示的位置
+const shouldShowUp = computed(() => {
+  if (!containerRef.value) return false
+  
+  const containerRect = containerRef.value.getBoundingClientRect()
+  const spaceBelow = window.innerHeight - containerRect.bottom
+  const dropdownHeight = 200 // 预估下拉框高度
+  
+  return spaceBelow < dropdownHeight
+})
+
+// 计算下拉框样式
+const dropdownStyle = computed(() => {
+  return {}
+})
+
+// 过滤选项
+const filteredOptions = computed(() => {
   if (!tagFilter.value) return props.options
-  return props.options.filter(tag =>
+  return props.options.filter(tag => 
     tag.toLowerCase().includes(tagFilter.value.toLowerCase())
   )
 })
 
-// 切换标签选择状态
+// 处理键盘事件
+const handleKeydown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    if (tagFilter.value && !props.modelValue.includes(tagFilter.value)) {
+      toggleTag(tagFilter.value)
+    }
+    tagFilter.value = ''
+  } else if (e.key === 'Escape') {
+    showDropdown.value = false
+  }
+}
+
+// 处理失去焦点
+const handleFocusOut = (e) => {
+  // 延迟关闭下拉框，以便处理点击事件
+  setTimeout(() => {
+    if (!containerRef.value?.contains(e.relatedTarget)) {
+      showDropdown.value = false
+    }
+  }, 100)
+}
+
+// 切换标签
 const toggleTag = (tag) => {
   const newValue = [...props.modelValue]
   const index = newValue.indexOf(tag)
+  
   if (index === -1) {
     newValue.push(tag)
   } else {
     newValue.splice(index, 1)
   }
+  
   emit('update:modelValue', newValue)
+  tagFilter.value = ''
 }
 
 // 移除标签
@@ -83,38 +132,31 @@ const removeTag = (tag) => {
   emit('update:modelValue', newValue)
 }
 
-// 过滤标签
-const filterTags = () => {
-  showTagDropdown.value = true
-}
-
-// 点击外部关闭下拉框
-const handleOutsideClick = (e) => {
-  if (selectorRef.value && !selectorRef.value.contains(e.target)) {
-    showTagDropdown.value = false
-  }
+// 监听窗口大小变化
+const handleResize = () => {
+  // 重新计算位置
 }
 
 onMounted(() => {
-  document.addEventListener('click', handleOutsideClick)
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleOutsideClick)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
 <style scoped>
-.custom-tags-selector {
+.tag-selector {
   position: relative;
-  margin-right: 8px;
-  min-width: 200px;
+  width: 100%;
+  z-index: 1000;
 }
 
 .tag-input-container {
   border: 1px solid #ddd;
   border-radius: 4px;
-  padding: 4px;
+  padding: 4px 8px;
   min-height: 32px;
   background: white;
   cursor: text;
@@ -122,6 +164,8 @@ onUnmounted(() => {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tag-input-container:focus-within {
@@ -167,7 +211,6 @@ onUnmounted(() => {
 
 .tag-dropdown {
   position: absolute;
-  top: 100%;
   left: 0;
   right: 0;
   margin-top: 4px;
@@ -176,8 +219,17 @@ onUnmounted(() => {
   border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 1001;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tag-dropdown.dropdown-up {
+  bottom: 100%;
+  top: auto;
+  margin-top: 0;
+  margin-bottom: 4px;
 }
 
 .dropdown-item {
@@ -185,6 +237,7 @@ onUnmounted(() => {
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
@@ -218,5 +271,51 @@ onUnmounted(() => {
 
 .tag-dropdown::-webkit-scrollbar-thumb:hover {
   background: #ccc;
+}
+
+/* 深色模式样式 */
+.memos-extension.dark .tag-input-container {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.memos-extension.dark .tag-item {
+  background: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .remove-tag {
+  color: #999;
+}
+
+.memos-extension.dark .remove-tag:hover {
+  color: #fff;
+}
+
+.memos-extension.dark .tag-filter {
+  background: #2d2d2d;
+  color: #fff;
+}
+
+.memos-extension.dark .tag-dropdown {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.memos-extension.dark .dropdown-item {
+  color: #fff;
+}
+
+.memos-extension.dark .dropdown-item:hover {
+  background: #404040;
+}
+
+.memos-extension.dark .dropdown-item.selected {
+  background: #10B981;
+  color: #fff;
+}
+
+.memos-extension.dark .check-mark {
+  color: #fff;
 }
 </style> 

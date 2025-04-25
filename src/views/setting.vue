@@ -1,122 +1,123 @@
 <template>
 <!-- 设置面板 -->
 <div v-if="showSettings" class="settings-panel">
+  <div class="settings-content">
       <h2>基本设置</h2>
       <div class="form-group">
         <label>Memos 主页网址</label>
-        <input 
-          v-model="localSettings.host" 
-          type="text" 
-          placeholder="请输入 Memos 主页网址"
-          :disabled="isLoading"
-        >
+      <input 
+        v-model="localSettings.host" 
+        type="text" 
+        placeholder="请输入 Memos 主页网址"
+        :disabled="isLoading"
+      >
       </div>
-     
+   
       <div class="form-group">
         <label>API 版本</label>
-        <CustomSelect
-          v-model="localSettings.apiVersion"
-          :options="[
-            { value: 'v18', label: '0.18' },
-            { value: 'v24', label: '0.24' }
-          ]"
-          :disabled="isLoading"
-        />
+      <CustomSelect
+        v-model="localSettings.apiVersion"
+        :options="[
+          { value: 'v18', label: '0.18' },
+          { value: 'v24', label: '0.24' }
+        ]"
+        :disabled="isLoading"
+      />
       </div>
-     
-      
+   
+    
       <div class="form-group">
-        <label>{{ localSettings.apiVersion === 'v18' ? 'Access Token' : 'Access Token / OpenAPI' }}</label>
-        <input 
-          v-model="localSettings.token" 
-          type="password" 
-          :placeholder="localSettings.apiVersion === 'v18' ? '请输入 Memos Access Tokens' : '请输入 Access Token 或 OpenAPI'"
-          :disabled="isLoading"
-        >
+      <label>{{ localSettings.apiVersion === 'v18' ? 'Access Token' : 'Access Token / OpenAPI' }}</label>
+      <input 
+        v-model="localSettings.token" 
+        type="password" 
+        :placeholder="localSettings.apiVersion === 'v18' ? '请输入 Memos Access Tokens' : '请输入 Access Token 或 OpenAPI'"
+        :disabled="isLoading"
+      >
       </div>
 
       <h2>内容设置</h2>
+    <div class="form-group checkbox ">
+      <input 
+        type="checkbox" 
+        id="addSource" 
+        v-model="localSettings.addSource"
+        :disabled="isLoading"
+      >
+      <label for="addSource" class="label-content">自动添加来源信息</label>
+    </div>
       <div class="form-group checkbox">
-        <input 
-          type="checkbox" 
-          id="addSource" 
-          v-model="localSettings.addSource"
-          :disabled="isLoading"
-        >
-        <label for="addSource">自动添加来源信息</label>
+      <input 
+        type="checkbox" 
+        id="addTag" 
+        v-model="localSettings.addTag"
+        :disabled="isLoading"
+      >
+      <label for="addTag" class="label-content">自动添加 #quick-capture 标签</label>
       </div>
       <div class="form-group checkbox">
-        <input 
-          type="checkbox" 
-          id="addTag" 
-          v-model="localSettings.addTag"
-          :disabled="isLoading"
-        >
-        <label for="addTag">自动添加 #quick-capture 标签</label>
+      <input 
+        type="checkbox" 
+        id="useQuote" 
+        v-model="localSettings.useQuote"
+        :disabled="isLoading"
+      >
+      <label for="useQuote" class="label-content">使用引用格式（>）包裹选中文本</label>
       </div>
       <div class="form-group checkbox">
-        <input 
-          type="checkbox" 
-          id="useQuote" 
-          v-model="localSettings.useQuote"
-          :disabled="isLoading"
-        >
-        <label for="useQuote">使用引用格式（>）包裹选中文本</label>
-      </div>
-      <div class="form-group checkbox">
-        <input 
-          type="checkbox" 
-          id="skipDefaultTags" 
-          v-model="localSettings.skipDefaultTags"
-          :disabled="isLoading"
-        >
-        <label for="skipDefaultTags">当内容包含标签时不添加默认自定义标签</label>
+      <input 
+        type="checkbox" 
+        id="skipDefaultTags" 
+        v-model="localSettings.skipDefaultTags"
+        :disabled="isLoading"
+      >
+      <label for="skipDefaultTags" class="label-content">当内容包含标签时不添加默认自定义标签</label>
       </div>
 
       <h2>默认设置</h2>
       <div class="form-group">
         <label>默认可见性</label>
-        <CustomSelect
-          v-model="localSettings.defaultVisibility"
-          :options="[
-            { value: 'PUBLIC', label: '所有人可见' },
-            { value: 'PRIVATE', label: '仅自己可见' },
-            { value: 'PROTECTED', label: '登录可见' }
-          ]"
-          :disabled="isLoading"
-        />
+      <CustomSelect
+        v-model="localSettings.defaultVisibility"
+        :options="[
+          { value: 'PUBLIC', label: '所有人可见' },
+          { value: 'PRIVATE', label: '仅自己可见' },
+          { value: 'PROTECTED', label: '登录可见' }
+        ]"
+        :disabled="isLoading"
+      />
       </div>
-      
+    
       <div class="form-group">
         <label>自定义标签</label>
-        <input 
-          v-model="localSettings.customTags" 
-          type="text" 
-          placeholder="用逗号分隔，如: daily,note"
-          :disabled="isLoading"
-        >
+      <input 
+        v-model="localSettings.customTags" 
+        type="text" 
+        placeholder="用逗号分隔，如: daily,note"
+        :disabled="isLoading"
+      >
       </div>
       <div class="form-group">
         <label>内容模板</label>
         <textarea
-          v-model="localSettings.template"
+        v-model="localSettings.template"
           placeholder="可用变量：{content}, {url}, {title}, {date}"
           rows="3"
-          :disabled="isLoading"
+        :disabled="isLoading"
         ></textarea>
       </div>
 
       <h2>快捷键设置</h2>
       <div class="form-group checkbox">
-        <input 
-          type="checkbox" 
-          id="enableShortcuts" 
-          v-model="localSettings.enableShortcuts"
-          :disabled="isLoading"
-        >
+      <input 
+        type="checkbox" 
+        id="enableShortcuts" 
+        v-model="localSettings.enableShortcuts"
+        :disabled="isLoading"
+      >
         <label for="enableShortcuts">启用快捷键</label>
       </div>
-      <div class="shortcut-list" v-if="localSettings.enableShortcuts">
+    <div class="shortcut-list" v-if="localSettings.enableShortcuts">
         <div class="shortcut-item">
           <span>Ctrl/Cmd + Enter</span>
           <span>快速保存</span>
@@ -130,115 +131,203 @@
       <h2>标签设置</h2>
       <div class="form-group">
         <label>标签输入后行为</label>
-        <CustomSelect
-          v-model="localSettings.tagBehavior"
-          :options="[
-            { value: 'space', label: '添加空格' },
-            { value: 'newline', label: '添加换行' }
-          ]"
-          :disabled="isLoading"
-          @update:modelValue="handleTagBehaviorChange"
-        />
+      <CustomSelect
+        v-model="localSettings.tagBehavior"
+        :options="[
+          { value: 'space', label: '添加空格' },
+          { value: 'newline', label: '添加换行' }
+        ]"
+        :disabled="isLoading"
+        @update:modelValue="handleTagBehaviorChange"
+      />
       </div>
       <div class="form-group">
-        <label>{{ localSettings.tagBehavior === 'space' ? '空格' : '换行' }}数量</label>
+      <label>{{ localSettings.tagBehavior === 'space' ? '空格' : '换行' }}数量</label>
         <div class="number-input">
-          <button 
-            @click="decrementCount" 
-            type="button" 
-            class="number-btn"
-            :disabled="isLoading"
-          >-</button>
+        <button 
+          @click="decrementCount" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >-</button>
           <input 
             type="number" 
-            v-model.number="localSettings.tagSpaceCount" 
+          v-model.number="localSettings.tagSpaceCount" 
             min="1" 
             max="5"
             class="count-input"
-            :disabled="isLoading"
-          >
-          <button 
-            @click="incrementCount" 
-            type="button" 
-            class="number-btn"
-            :disabled="isLoading"
-          >+</button>
+          :disabled="isLoading"
+        >
+        <button 
+          @click="incrementCount" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >+</button>
         </div>
         <div class="preview-box">
           预览：<span class="preview-content">{{ tagEndingPreview }}</span>
         </div>
+    </div>
+    <div class="setting-item">
+     <label>标签筛选样式</label>
+     <CustomSelect
+       v-model="localSettings.tagFilterStyle"
+       :options="[
+         { value: 'list', label: '标签列表' },
+         { value: 'selector', label: '下拉选择器' }
+       ]"
+       :disabled="isLoading"
+     />
       </div>
+    <div class="setting-item">
+      <label>优先展示标签</label>
+      <div class="setting-description">选择需要优先展示的标签</div>
+      <TagSelector
+        v-model="localSettings.preferredTags"
+        :options="tags"
+        placeholder="选择优先展示的标签..."
+        multiple
+        :disabled="isLoading || !localSettings.host || !localSettings.token"
+      />
+    </div>
 
       <h2>页面设置</h2>
       <div class="form-group">
-        <label>默认视图</label>
-        <CustomSelect
-          v-model="localSettings.defaultView"
-          :options="[
-            { value: 'editor', label: '编辑器' },
-            { value: 'list', label: '列表' }
-          ]"
-          :disabled="isLoading"
-        />
-      </div>
-      <div class="form-group">
-        <label>宽度 (px)</label>
+      <label>默认视图</label>
+      <CustomSelect
+        v-model="localSettings.defaultView"
+        :options="[
+          { value: 'editor', label: '编辑器' },
+          { value: 'list', label: '列表' }
+        ]"
+        :disabled="isLoading"
+      />
+    </div>
+    <div class="form-group">
+      <label>默认宽度 (最高800px)</label>
         <div class="number-input">
-          <button 
-            @click="decrementWidth" 
-            type="button" 
-            class="number-btn"
-            :disabled="isLoading"
-          >-</button>
+        <button 
+          @click="decrementWidth" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >-</button>
           <input 
             type="number" 
-            v-model.number="localSettings.width" 
+          v-model.number="localSettings.width" 
             min="300" 
             max="800"
             class="count-input"
-            :disabled="isLoading"
-          >
-          <button 
-            @click="incrementWidth" 
-            type="button" 
-            class="number-btn"
-            :disabled="isLoading"
-          >+</button>
-        </div>
+          :disabled="isLoading"
+        >
+        <button 
+          @click="incrementWidth" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >+</button>
+      </div>
       </div>
       <div class="form-group">
-        <label>高度 (px)</label>
+      <label>输入页面高度 (最高600px)</label>
         <div class="number-input">
-          <button 
-            @click="decrementHeight" 
-            type="button" 
-            class="number-btn"
-            :disabled="isLoading"
-          >-</button>
+        <button 
+          @click="decrementHeight" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >-</button>
           <input 
             type="number" 
-            v-model.number="localSettings.height" 
-            min="200" 
+          v-model.number="localSettings.height" 
+            min="400" 
             max="600"
             class="count-input"
-            :disabled="isLoading"
-          >
-          <button 
-            @click="incrementHeight" 
-            type="button" 
-            class="number-btn"
-            :disabled="isLoading"
-          >+</button>
+          :disabled="isLoading"
+        >
+        <button 
+          @click="incrementHeight" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >+</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>设置页面高度 (最高600px)</label>
+      <div class="number-input">
+        <button 
+          @click="decrementSettingHeight" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >-</button>
+        <input 
+          type="number" 
+          v-model.number="localSettings.settingHeight" 
+          min="400" 
+          max="600"
+          step="50"
+          class="count-input"
+          :disabled="isLoading"
+        >
+        <button 
+          @click="incrementSettingHeight" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >+</button>
+      </div>
         </div>
+
+    <div class="form-group">
+      <label>列表页面高度 (最高600px)</label>
+      <div class="number-input">
+        <button 
+          @click="decrementListHeight" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >-</button>
+        <input 
+          type="number" 
+          v-model.number="localSettings.listMaxHeight" 
+          min="400" 
+          max="600"
+          step="50"
+          class="count-input"
+          :disabled="isLoading"
+        >
+        <button 
+          @click="incrementListHeight" 
+          type="button" 
+          class="number-btn"
+          :disabled="isLoading"
+        >+</button>
+      </div>
+    </div>
+
+
+    <h2>其他设置</h2>
+    <div class="form-group checkbox">
+      <input type="checkbox" id="showWordCount" v-model="localSettings.showWordCount">
+      <label for="showWordCount">显示字数统计</label>
+    </div>
+
+    <div class="form-group">
+      <label>主题</label>
+      <select v-model="localSettings.theme">
+        <option value="light">浅色</option>
+        <option value="dark">深色</option>
+      </select>
       </div>
 
       <h2>配置管理</h2>
       <div class="form-group">
-        <button 
-          class="export-btn" 
-          @click="exportSettings"
-          :disabled="isLoading"
-        >导出配置</button>
+      <div class="config-actions">
+        <button class="export-btn" @click="exportSettings" :disabled="isLoading">导出配置</button>
         <label class="import-btn" :class="{ 'disabled': isLoading }">
           导入配置
           <input 
@@ -249,46 +338,16 @@
             style="display: none"
           >
         </label>
-        <button 
-          class="reset-btn" 
-          @click="resetSettings"
-          :disabled="isLoading"
-        >重置设置</button>
+        <button class="reset-btn" @click="resetSettings" :disabled="isLoading">重置设置</button>
       </div>
+    </div>
+  </div>
 
-      <div class="action-buttons">
-        <button 
-          class="cancel-btn" 
-          @click="cancelSettings"
-          :disabled="isLoading"
-        >取消</button>
-        <button 
-          class="save-btn" 
-          @click="saveSettings"
-          :disabled="isLoading || !isValid"
-        >
-          <span v-if="isLoading">保存中...</span>
-          <span v-else>保存</span>
-        </button>
-      </div>
-      
-      <!-- 调试信息 -->
-      <div v-if="isDev" class="debug-info">
-        <pre>{{ debugInfo }}</pre>
-      </div>
-
-      <div class="form-group checkbox">
-        <input type="checkbox" id="showWordCount" v-model="localSettings.showWordCount">
-        <label for="showWordCount">显示字数统计</label>
-      </div>
- 
-
-      <div class="form-group">
-        <label>主题</label>
-        <select v-model="localSettings.theme">
-          <option value="light">浅色</option>
-          <option value="dark">深色</option>
-        </select>
+  <div class="settings-footer">
+    <button class="cancel-btn" @click="cancelSettings" :disabled="isLoading">取消</button>
+    <button class="save-btn" @click="saveSettings" :disabled="isLoading">
+      {{ isLoading ? '保存中...' : '保存' }}
+    </button>
       </div>
     </div>
 </template>
@@ -300,63 +359,73 @@ import { useStorage } from "@vueuse/core";
 import { showToast } from '../utils/toast'
 import { createApiService } from '../api'
 import CustomSelect from '../components/CustomSelect.vue'
+import TagSelector from '../components/TagSelector.vue'
 
-const props = defineProps({
-    showSettings: {
-        type: Boolean,
-        default: false
-    },
-    editorRef: {
-        type: Object,
-        default: null
-    },
-    content: {
-        type: String,
-        default: ''
+    const props = defineProps({
+        showSettings: {
+            type: Boolean,
+            default: false
+        },
+        editorRef: {
+            type: Object,
+            default: null
+        },
+        content: {
+            type: String,
+            default: ''
     },
     settings: {
         type: Object,
         required: true
-    }
-})
+        }
+    })
 
-const emits = defineEmits(['update:showSettings', 'update:content', 'update:settings'])
+    const emits = defineEmits(['update:showSettings', 'update:content', 'update:settings'])
 
 // 获取所有标签
 const fetchTags = async () => {
+  if (!localSettings.value.host || !localSettings.value.token) return
+
   try {
     const api = createApiService(localSettings.value.apiVersion)
     const data = await api.getTags(localSettings.value.host, localSettings.value.token)
     
     // 处理不同版本的API返回格式
     if (localSettings.value.apiVersion === 'v18') {
-      tags.value = data
+      tags.value = data || []
       // v1版本可能没有标签计数，设置默认值1
-      tagCounts.value = data.reduce((acc, tag) => {
+      tagCounts.value = (data || []).reduce((acc, tag) => {
         acc[tag] = 1
         return acc
       }, {})
     } else {
       // v2版本的标签数据处理
-      tags.value = data.map(tag => tag.name)
-      tagCounts.value = data.reduce((acc, tag) => {
+      tags.value = (data || []).map(tag => tag.name)
+      tagCounts.value = (data || []).reduce((acc, tag) => {
         acc[tag.name] = tag.count
         return acc
       }, {})
     }
   } catch (error) {
     console.error('获取标签失败:', error)
+    showToast('获取标签失败: ' + error.message, 'error')
+    tags.value = []
+    tagCounts.value = {}
   }
 }
 
 // 标签相关状态
 const tags = ref([])
 const tagCounts = ref({})
-
-const currentContent = ref(props.content);
-const showSettings = ref(props.showSettings);
-const editorRef = ref(props.editorRef); 
-const localSettings = ref({ ...props.settings });
+  
+    const currentContent = ref(props.content);
+    const showSettings = ref(props.showSettings);
+    const editorRef = ref(props.editorRef); 
+const localSettings = ref({ 
+  ...props.settings, 
+  preferredTags: [], // 新增：优先展示的标签
+  tagFilterStyle: 'list' 
+});
 
 watch(() => props.showSettings, (newVal) => {
     showSettings.value = newVal
@@ -367,7 +436,7 @@ watch(() => props.settings, (newVal) => {
     if (!showSettings.value) {
         localSettings.value = { ...newVal }
     }
-}, { deep: true })
+    }, { deep: true })
 
 watch(() => props.content, (newVal) => {
     currentContent.value = newVal
@@ -379,7 +448,7 @@ watch(localSettings, (newVal) => {
     if (showSettings.value) {
         emits('update:settings', { ...newVal })
     }
-}, { deep: true })
+    }, { deep: true })
 
 // 监听设置面板状态
 watch(() => props.showSettings, (newVal) => {
@@ -428,7 +497,7 @@ const saveSettings = async () => {
     showToast('请填写必要的设置项', 'error')
     return
   }
-
+  
   if (!localSettings.value.host) {
     showToast('主页网址不能为空', 'error')
     return
@@ -470,12 +539,17 @@ const saveSettings = async () => {
     if (!result.ok) {
       throw new Error('API 连接失败')
     }
-
+    
     // 保存到历史记录
-    settingsHistory.value.push(JSON.parse(JSON.stringify(localSettings.value)))
+    const settingsToSave = {
+      ...localSettings.value,
+      preferredTags: localSettings.value.preferredTags || [] // 确保 preferredTags 被保存
+    }
+    
+    settingsHistory.value.push(JSON.parse(JSON.stringify(settingsToSave)))
     
     // 更新父组件设置
-    emits('update:settings', { ...localSettings.value })
+    emits('update:settings', settingsToSave)
     
     // 关闭设置面板
     emits('update:showSettings', false)
@@ -558,14 +632,40 @@ const decrementHeight = () => {
   }
 }
 
+// 列表高度调整方法
+const incrementListHeight = () => {
+  if (localSettings.value.listMaxHeight < 1000) {
+    localSettings.value.listMaxHeight += 50
+  }
+}
+
+const decrementListHeight = () => {
+  if (localSettings.value.listMaxHeight > 300) {
+    localSettings.value.listMaxHeight -= 50
+  }
+}
+
+// 设置页面高度调整方法
+const incrementSettingHeight = () => {
+  if (localSettings.value.settingHeight < 1000) {
+    localSettings.value.settingHeight += 50
+  }
+}
+
+const decrementSettingHeight = () => {
+  if (localSettings.value.settingHeight > 300) {
+    localSettings.value.settingHeight -= 50
+  }
+}
+
 // 配置导入导出方法
 const exportSettings = () => {
   try {
     const settingsData = {
       ...localSettings.value,
-      width: undefined,
-      height: undefined
+      preferredTags: localSettings.value.preferredTags || [] // 确保导出时包含 preferredTags
     }
+    
     const blob = new Blob([JSON.stringify(settingsData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -629,8 +729,15 @@ const resetSettings = () => {
       enableShortcuts: true,
       tagBehavior: 'space',
       tagSpaceCount: 1,
-      width: 450,
-      height: 300
+      defaultView: 'editor',
+      showWordCount: true,
+      theme: 'light',
+      width: 550,
+      height: 400,
+      listMaxHeight: 600,
+      settingHeight: 600,
+      tagFilterStyle: 'list',
+      preferredTags: [] // 确保重置时包含 preferredTags
     }
     settingsHistory.value = [JSON.parse(JSON.stringify(localSettings.value))]
     showToast('设置已重置')
@@ -639,9 +746,7 @@ const resetSettings = () => {
 
 // 取消设置
 const cancelSettings = () => {
-  if (settingsHistory.value.length > 0) {
-    localSettings.value = settingsHistory.value[0]
-  }
+  
   emits('update:showSettings', false)
 }
 
@@ -649,6 +754,21 @@ const cancelSettings = () => {
 const handleTagBehaviorChange = (value) => {
   localSettings.value.tagBehavior = value
 }
+
+// 监听设置变化时获取标签
+watch(() => localSettings.value.host, () => {
+  fetchTags()
+}, { immediate: true })
+
+// 监听 token 变化时也获取标签
+watch(() => localSettings.value.token, () => {
+  fetchTags()
+}, { immediate: true })
+
+// 监听 API 版本变化时也获取标签
+watch(() => localSettings.value.apiVersion, () => {
+  fetchTags()
+}, { immediate: true })
 
 </script>
 
@@ -661,41 +781,115 @@ const handleTagBehaviorChange = (value) => {
 .settings-panel {
   padding: 16px;
   position: relative;
-  min-height: 100%;
-  padding-bottom: 80px; /* 为固定按钮留出空间 */
-  z-index: 1; /* 添加基础层级 */
+  height: v-bind('`${localSettings.settingHeight}px`');
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 80px;
+  box-sizing: border-box;
+}
+
+.settings-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 16px;
+  border-top: 1px solid #eee;
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+/* 深色模式样式 */
+.memos-extension.dark .settings-footer {
+  background: #1a1a1a;
+  border-top-color: #404040;
+}
+
+.save-btn,
+.cancel-btn {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.save-btn {
+  background: #10B981;
+  color: white;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #0D9F6E;
+}
+
+.cancel-btn {
+  background: #f3f4f6;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background: #e5e7eb;
+  color: #333;
+}
+
+.memos-extension.dark .cancel-btn {
+  background: #2d2d2d;
+  color: #999;
+}
+
+.memos-extension.dark .cancel-btn:hover {
+  background: #404040;
+  color: #fff;
 }
 
 /* 确保表单组内的 CustomSelect 下拉框可以正常显示 */
 .form-group {
+  display: flex;
+  align-items: start;
   margin-bottom: 16px;
-  position: relative;
-}
-
-/* 调整 CustomSelect 在表单中的样式 */
-:deep(.custom-select) {
-  width: 100%;
-}
-
-:deep(.select-dropdown) {
-  z-index: 1000; /* 确保下拉列表显示在其他元素之上 */
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-   
 }
 
 .form-group.checkbox {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-direction: row;
 }
 
 .form-group.checkbox label {
   margin: 0;
   cursor: pointer;
+  white-space: nowrap;
+  width: auto !important;
+}
+
+.form-group.checkbox input[type="checkbox"] {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* 确保其他表单组的样式不受影响 */
+.form-group:not(.checkbox) {
+  flex-direction: column;
+}
+
+.form-group:not(.checkbox) label {
+  width: 100%;
+  margin-bottom: 8px;
 }
 
 input[type="text"],
@@ -739,44 +933,13 @@ textarea {
   gap: 8px;
 }
 
-.save-btn,
-.cancel-btn,
 .reset-btn {
-  flex: 1;
-  padding: 8px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.save-btn {
-  background: #10B981;
-  color: white;
-}
-
-.save-btn:hover:not(:disabled) {
-  background: #0D9F6E;
-}
-
-.cancel-btn {
   background: #EF4444;
   color: white;
 }
 
-.cancel-btn:hover:not(:disabled) {
-  background: #DC2626;
-}
-
-.reset-btn {
-  background: #3B82F6;
-  color: white;
-}
-
 .reset-btn:hover:not(:disabled) {
-  background: #2563EB;
+  background: #DC2626;
 }
 
 button:disabled {
@@ -868,7 +1031,8 @@ button:disabled {
 }
 
 .export-btn,
-.import-btn {
+.import-btn,
+.reset-btn {
   display: inline-block;
   padding: 8px 16px;
   margin-top: 5px;
@@ -876,18 +1040,285 @@ button:disabled {
   color: white;
   border: none;
   width: 140px;
+  height: 36px;
   border-radius: 4px;
   cursor: pointer;
   margin-right: 8px;
   text-align: center;
+  line-height: 20px;
 }
 
 .import-btn {
   background: #3B82F6;
 }
 
+.reset-btn {
+  background: #EF4444;
+}
+
 .export-btn:hover:not(:disabled),
-.import-btn:hover:not(:disabled) {
+.import-btn:hover:not(:disabled),
+.reset-btn:hover:not(:disabled) {
   opacity: 0.9;
+}
+
+.form-group {
+  display: flex;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  width: 120px;
+  margin-right: 16px;
+}
+
+.form-group .label-content {
+  width: 100% !important;
+  margin-right: 16px;
+}
+
+.form-group input[type="number"] {
+  width: 100px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.form-group .unit {
+  margin-left: 8px;
+  color: #666;
+}
+
+.memos-extension.dark .form-group input[type="number"] {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .form-group .unit {
+  color: #999;
+}
+
+/* 添加新的样式 */
+.settings-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cancel-btn {
+  padding: 8px 16px;
+  background: #f3f4f6;
+  color: #666;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #e5e7eb;
+  color: #333;
+}
+
+/* 深色模式样式 */
+.memos-extension.dark .settings-footer {
+  border-top-color: #404040;
+}
+
+.memos-extension.dark .cancel-btn {
+  background: #2d2d2d;
+  color: #999;
+}
+
+.memos-extension.dark .cancel-btn:hover {
+  background: #404040;
+  color: #fff;
+}
+
+.config-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.export-btn,
+.import-btn,
+.reset-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  height: 36px;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.export-btn {
+  background: #10B981;
+  color: white;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #0D9F6E;
+}
+
+.import-btn {
+  background: #3B82F6;
+  color: white;
+}
+
+.import-btn:hover:not(:disabled) {
+  background: #2563EB;
+}
+
+.reset-btn {
+  background: #EF4444;
+  color: white;
+}
+
+.reset-btn:hover:not(:disabled) {
+  background: #DC2626;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.setting-description {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.memos-extension.dark .setting-description {
+  color: #999;
+}
+
+/* 确保 TagSelector 的容器和下拉菜单样式正确 */
+.setting-item {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+:deep(.tag-selector) {
+  position: relative;
+  width: 100%;
+}
+
+:deep(.tag-selector-input) {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+}
+
+:deep(.tag-selector-options) {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+:deep(.tag-selector-option) {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+:deep(.tag-selector-option:hover) {
+  background: #f5f5f5;
+}
+
+:deep(.tag-selector-option.selected) {
+  background: #10B981;
+  color: white;
+}
+
+:deep(.tag-selector-tags) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+}
+
+:deep(.tag-selector-tag) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #f0f9f6;
+  color: #10B981;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+:deep(.tag-selector-tag-remove) {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+:deep(.tag-selector-tag-remove:hover) {
+  opacity: 1;
+}
+
+/* 深色模式样式 */
+.memos-extension.dark :deep(.tag-selector-input) {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark :deep(.tag-selector-options) {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark :deep(.tag-selector-option:hover) {
+  background: #404040;
+}
+
+.memos-extension.dark :deep(.tag-selector-tag) {
+  background: #2d2d2d;
+  border: 1px solid #404040;
+}
+
+.memos-extension.dark :deep(.tag-selector-option.selected) {
+  background: #10B981;
+  color: white;
 }
 </style>

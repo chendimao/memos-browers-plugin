@@ -1,5 +1,5 @@
-import { v1Api as v18Api } from './v18'
-import { v2Api as v24Api } from './v24'
+import { v18Api } from './v18'
+import { v24Api } from './v24'
 
 /**
  * API 服务工厂
@@ -16,7 +16,9 @@ export const createApiService = (version) => {
     throw new Error(`不支持的 API 版本: ${version}`)
   }
 
-  return apiMap[version]
+  return {
+    ...apiMap[version]
+  }
 }
 
 /**
@@ -41,4 +43,5 @@ export const getVersionDisplayName = (version) => {
     v24: '0.24'
   }
   return versionMap[version] || version
-} 
+}
+ 

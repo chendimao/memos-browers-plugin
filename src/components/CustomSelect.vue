@@ -1,29 +1,31 @@
 <template>
-  <div class="custom-select" ref="selectRef">
+  <div class="custom-select" ref="containerRef">
     <div 
-      class="select-trigger" 
+      class="select-input"
+      :class="{ 'is-open': showDropdown }"
       @click="toggleDropdown"
-      :class="{ 'active': showDropdown }"
+      @focusout="handleFocusOut"
     >
-      <span class="selected-text">
-        {{ selectedLabel }}
-      </span>
-      <span class="select-arrow" :class="{ 'open': showDropdown }">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
+      <span class="selected-value">{{ selectedLabel }}</span>
+      <span class="arrow-icon">
+        <i class="fas fa-chevron-down"></i>
       </span>
     </div>
-    <div v-if="showDropdown" class="select-dropdown">
+    <div 
+      v-if="showDropdown" 
+      class="select-dropdown"
+      :class="{ 'dropdown-up': shouldShowUp }"
+      :style="dropdownStyle"
+    >
       <div
         v-for="option in options"
         :key="option.value"
-        class="select-option"
-        :class="{ 'selected': modelValue === option.value }"
+        class="dropdown-item"
+        :class="{ selected: modelValue === option.value }"
         @click="selectOption(option)"
       >
-        <span class="check-mark" v-if="modelValue === option.value">✓</span>
         {{ option.label }}
+        <span v-if="modelValue === option.value" class="check-mark">✓</span>
       </div>
     </div>
   </div>
@@ -40,10 +42,11 @@ const props = defineProps({
   options: {
     type: Array,
     required: true,
-    validator: (options) => {
-      return options.every(option => 
-        option.hasOwnProperty('value') && 
-        option.hasOwnProperty('label')
+    validator: (value) => {
+      return value.every(option => 
+        typeof option === 'object' && 
+        'value' in option && 
+        'label' in option
       )
     }
   }
@@ -51,19 +54,49 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
+const containerRef = ref(null)
 const showDropdown = ref(false)
 
-const selectRef = ref(null)
-
-// 计算当前选中项的标签
+// 计算选中的标签
 const selectedLabel = computed(() => {
-  const selected = props.options.find(option => option.value === props.modelValue)
-  return selected ? selected.label : ''
+  const option = props.options.find(opt => opt.value === props.modelValue)
+  return option ? option.label : ''
+})
+
+// 计算下拉框应该显示的位置
+const shouldShowUp = computed(() => {
+  if (!containerRef.value) return false
+  
+  const containerRect = containerRef.value.getBoundingClientRect()
+  const spaceBelow = window.innerHeight - containerRect.bottom
+  const dropdownHeight = 200 // 预估下拉框高度
+  
+  return spaceBelow < dropdownHeight
+})
+
+// 计算下拉框样式
+const dropdownStyle = computed(() => {
+  if (!containerRef.value) return {}
+  
+  const containerRect = containerRef.value.getBoundingClientRect()
+  return {
+    width: `${containerRect.width}px`
+  }
 })
 
 // 切换下拉框显示状态
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
+}
+
+// 处理失去焦点
+const handleFocusOut = (e) => {
+  // 延迟关闭下拉框，以便处理点击事件
+  setTimeout(() => {
+    if (!containerRef.value?.contains(e.relatedTarget)) {
+      showDropdown.value = false
+    }
+  }, 100)
 }
 
 // 选择选项
@@ -72,19 +105,17 @@ const selectOption = (option) => {
   showDropdown.value = false
 }
 
-// 修改点击外部关闭下拉框的处理
-const handleOutsideClick = (e) => {
-  if (selectRef.value && !selectRef.value.contains(e.target)) {
-    showDropdown.value = false
-  }
+// 监听窗口大小变化
+const handleResize = () => {
+  // 重新计算位置
 }
 
 onMounted(() => {
-  document.addEventListener('click', handleOutsideClick)
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleOutsideClick)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -92,58 +123,47 @@ onUnmounted(() => {
 .custom-select {
   position: relative;
   min-width: 120px;
-  user-select: none;
+  width: 100%;
 }
 
-.select-trigger {
+.select-input {
   border: 1px solid #ddd;
   border-radius: 4px;
-  padding: 6px 32px 6px 12px;
+  padding: 6px 12px;
   background: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 32px;
-  position: relative;
   transition: all 0.2s;
+  width: 100%;
 }
 
-.select-trigger:hover {
+.select-input:hover {
   border-color: #10B981;
 }
 
-.select-trigger.active {
+.select-input.is-open {
   border-color: #10B981;
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
 }
 
-.selected-text {
+.selected-value {
   font-size: 14px;
   color: #333;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.select-arrow {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
+.arrow-icon {
   color: #666;
   transition: transform 0.2s;
 }
 
-.select-arrow.open {
-  transform: translateY(-50%) rotate(180deg);
+.select-input.is-open .arrow-icon {
+  transform: rotate(180deg);
 }
 
 .select-dropdown {
   position: absolute;
-  top: 100%;
   left: 0;
   right: 0;
   margin-top: 4px;
@@ -156,22 +176,31 @@ onUnmounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.select-option {
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #333;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.select-dropdown.dropdown-up {
+  bottom: 100%;
+  top: auto;
+  margin-top: 0;
+  margin-bottom: 4px;
 }
 
-.select-option:hover {
+.dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.dropdown-item:hover {
   background: #f5f5f5;
 }
 
-.select-option.selected {
+.dropdown-item.selected {
   background: #f0f9f6;
+  color: #10B981;
 }
 
 .check-mark {
@@ -196,5 +225,45 @@ onUnmounted(() => {
 
 .select-dropdown::-webkit-scrollbar-thumb:hover {
   background: #ccc;
+}
+
+/* 深色模式样式 */
+.memos-extension.dark .select-input {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.memos-extension.dark .select-input:hover {
+  border-color: #10B981;
+}
+
+.memos-extension.dark .selected-value {
+  color: #fff;
+}
+
+.memos-extension.dark .arrow-icon {
+  color: #999;
+}
+
+.memos-extension.dark .select-dropdown {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.memos-extension.dark .dropdown-item {
+  color: #fff;
+}
+
+.memos-extension.dark .dropdown-item:hover {
+  background: #404040;
+}
+
+.memos-extension.dark .dropdown-item.selected {
+  background: #10B981;
+  color: #fff;
+}
+
+.memos-extension.dark .check-mark {
+  color: #fff;
 }
 </style> 
