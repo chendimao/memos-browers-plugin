@@ -12,7 +12,7 @@ export const v24Api = {
    * @returns {Promise<Response>}
    */
   async createMemo(host, token, content, visibility, resourceIds = []) {
-    return fetch(`${host}/api/v1/memos`, {
+    const response = await fetch(`${host}/api/v1/memos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -26,6 +26,41 @@ export const v24Api = {
         resourceIdList: resourceIds
       })
     })
+
+    if (!response.ok) {
+      throw new Error('创建备忘录失败')
+    }
+
+    const data = await response.json()
+    return {
+      response,
+      data
+    }
+  },
+
+  /**
+   * 关联资源到备忘录
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} memoName - 备忘录名称
+   * @param {Array<Object>} resources - 资源列表
+   * @returns {Promise<Response>}
+   */
+  async associateResources(host, token, memoName, resources) {
+    const response = await fetch(`${host}/api/v1/${memoName}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(resources)
+    })
+
+    if (!response.ok) {
+      throw new Error('关联资源失败')
+    }
+
+    return response
   },
 
   /**
@@ -37,8 +72,7 @@ export const v24Api = {
   async testConnection(host, token) {
     const response = await fetch(`${host}/api/v1/auth/status`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: { 
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({})
@@ -68,18 +102,34 @@ export const v24Api = {
    * @param {string} host - Memos 主机地址
    * @param {string} token - 访问令牌
    * @param {File} file - 要上传的文件
+   * @param {string} visibility - 可见性设置
    * @returns {Promise<Object>}
    */
-  async uploadResource(host, token, file) {
-    const formData = new FormData()
-    formData.append('file', file)
+  async uploadResource(host, token, file, visibility) {
+    // 将文件转换为 base64
+    const base64Content = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        // 移除 base64 URL 的前缀（如 "data:image/jpeg;base64,"）
+        const base64 = reader.result.split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
 
     const response = await fetch(`${host}/api/v1/resources`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: formData
+      body: JSON.stringify({
+        content: base64Content,
+        filename: file.name,
+        type: file.type,
+        visibility
+      })
     })
 
     if (!response.ok) {
@@ -88,10 +138,11 @@ export const v24Api = {
 
     const data = await response.json()
     return {
-      id: data.id,
-      url: data.externalLink || `${host}/o/r/${data.id}`,
+      id: data.name,
+      name: data.name,
+      url: data.externalLink || `${host}/file/${data.name}/${data.filename}`,
       type: file.type,
-      name: file.name
+      filename: file.name
     }
   },
 
@@ -102,13 +153,61 @@ export const v24Api = {
    * @returns {Promise<Array>}
    */
   async getTags(host, token) {
-    const response = await fetch(`${host}/api/v1/tag`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    try {
+      // 从缓存中获取用户信息
+      const cachedSettings = localStorage.getItem('memos-settings')
+      if (!cachedSettings) {
+        throw new Error('未找到用户信息')
       }
-    })
-    if (!response.ok) throw new Error('获取标签失败')
-    return response.json()
+      
+      const settings = JSON.parse(cachedSettings)
+      if (!settings.userInfo || !settings.userInfo.name) {
+        throw new Error('用户信息不完整')
+      }
+      
+      // 检查是否有缓存的标签
+      const cachedTags = localStorage.getItem('memos-tags')
+      if (cachedTags) {
+        return JSON.parse(cachedTags)
+      }
+      
+      const parent = settings.userInfo.name
+      const response = await fetch(`${host}/api/v1/${parent}/memos?pageSize=1000`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error('获取标签失败')
+      }
+      
+      const data = await response.json()
+      
+      // 从 memos 中提取所有标签并去重
+      const allTags = data.memos.reduce((tags, memo) => {
+        if (memo.tags && Array.isArray(memo.tags)) {
+          return [...tags, ...memo.tags]
+        }
+        return tags
+      }, [])
+      
+      // 去重并缓存
+      const uniqueTags = [...new Set(allTags)]
+      localStorage.setItem('memos-tags', JSON.stringify(uniqueTags))
+      
+      return uniqueTags
+    } catch (error) {
+      console.error('获取标签失败:', error)
+      throw error
+    }
+  },
+
+  /**
+   * 清除标签缓存
+   */
+  clearTagCache() {
+    localStorage.removeItem('memos-tags')
   },
 
   /**
@@ -123,10 +222,15 @@ export const v24Api = {
    * @param {string} options.tag - 标签过滤
    * @returns {Promise<Array>}
    */
-  async getMemos(host, token, { offset = 0, limit = 20, content, visibility, tag } = {}) {
+  async getMemos(host, token, { offset = null, limit = 10, content, visibility, tag } = {}) {
     const url = new URL(`${host}/api/v1/memos`)
-    url.searchParams.append('offset', offset)
-    url.searchParams.append('limit', limit)
+    
+    // 使用 pageToken 替代 offset
+    if (offset) {
+      url.searchParams.append('pageToken', offset)
+    }
+    
+    url.searchParams.append('pageSize', limit)
     
     if (content) {
       url.searchParams.append('content', content)
@@ -140,12 +244,18 @@ export const v24Api = {
       url.searchParams.append('tag', tag)
     }
 
-    return await fetch(url.toString(), {
+    const res = await fetch(url.toString(), {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     })
- 
+
+    if (!res.ok) {
+      throw new Error('获取备忘录列表失败')
+    }
+
+    return res;
+    
   },
 
   /**

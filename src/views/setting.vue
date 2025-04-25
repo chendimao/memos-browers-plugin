@@ -400,7 +400,7 @@ const fetchTags = async () => {
       }, {})
     } else {
       // v2版本的标签数据处理
-      tags.value = (data || []).map(tag => tag.name)
+      tags.value = data;
       tagCounts.value = (data || []).reduce((acc, tag) => {
         acc[tag.name] = tag.count
         return acc
@@ -423,8 +423,6 @@ const tagCounts = ref({})
     const editorRef = ref(props.editorRef); 
 const localSettings = ref({ 
   ...props.settings, 
-  preferredTags: [], // 新增：优先展示的标签
-  tagFilterStyle: 'list' 
 });
 
 watch(() => props.showSettings, (newVal) => {
@@ -540,14 +538,14 @@ const saveSettings = async () => {
       throw new Error('API 连接失败')
     }
     
-    // 保存到历史记录
+    // 保存到缓存
     const settingsToSave = {
       ...localSettings.value,
+      userInfo: result.data,
       preferredTags: localSettings.value.preferredTags || [] // 确保 preferredTags 被保存
     }
-    
-    settingsHistory.value.push(JSON.parse(JSON.stringify(settingsToSave)))
-    
+    console.log(settingsToSave); 
+    useStorage('memos-settings', settingsToSave);
     // 更新父组件设置
     emits('update:settings', settingsToSave)
     
@@ -570,9 +568,6 @@ const isDev = ref(process.env.NODE_ENV === 'development')
 
 // 加载状态
 const isLoading = ref(false)
-
-// 设置历史记录
-const settingsHistory = ref([JSON.parse(JSON.stringify(props.settings))])
 
 // 计算标签结束符预览
 const tagEndingPreview = computed(() => {
@@ -701,7 +696,6 @@ const importSettings = (event) => {
       localSettings.value.width = currentWidth
       localSettings.value.height = currentHeight
       
-      settingsHistory.value.push(JSON.parse(JSON.stringify(localSettings.value)))
       showToast('配置导入成功！')
     } catch (error) {
       console.error('导入配置失败:', error)
@@ -739,7 +733,6 @@ const resetSettings = () => {
       tagFilterStyle: 'list',
       preferredTags: [] // 确保重置时包含 preferredTags
     }
-    settingsHistory.value = [JSON.parse(JSON.stringify(localSettings.value))]
     showToast('设置已重置')
   }
 }

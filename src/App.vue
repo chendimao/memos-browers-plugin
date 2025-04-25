@@ -1,7 +1,7 @@
 <template>
   <div class="memos-extension" :class="settings.theme" :style="containerStyle">
     <header>
-      <h1>MEMOS</h1>
+      <h1>Memos Quick Note</h1>
       <div class="header-actions">
         <button 
           class="view-switch-btn" 
@@ -212,6 +212,8 @@ const settings = useStorage('memos-settings', {
   tagSpaceCount: 1,
   width: 550,
   height: 400,
+  preferredTags: [], // 新增：优先展示的标签
+  tagFilterStyle: 'list' ,
   listMaxHeight: 600,
   settingHeight: 600,
   showWordCount: true,
@@ -345,7 +347,7 @@ const fetchRemoteTags = async () => {
         return acc
       }, {})
     } else {
-      remoteTags = data.map(tag => tag.name)
+      remoteTags =data;
       // 更新标签计数
       tagCounts.value = data.reduce((acc, tag) => {
         acc[tag.name] = tag.count
@@ -363,17 +365,7 @@ const fetchRemoteTags = async () => {
     
     // 更新可用标签列表
     availableCustomTags.value = tags.value
-
-    // 如果有缓存的标签，恢复它们
-    const cachedTags = localStorage.getItem('memos-cached-tags')
-    if (cachedTags) {
-      try {
-        const parsedTags = JSON.parse(cachedTags)
-        selectedCustomTags.value = parsedTags.filter(tag => tags.value.includes(tag))
-      } catch (e) {
-        console.error('解析缓存的标签失败:', e)
-      }
-    }
+ 
   } catch (error) {
     console.error('获取标签失败:', error)
   }
@@ -495,15 +487,19 @@ const handleFileUpload = async (event) => {
       const uploadedFile = await api.uploadResource(
         settings.value.host,
         settings.value.token,
-        file
+        file,
+        visibility.value
       )
       uploadedFiles.value.push(uploadedFile)
       
-      // 根据文件类型插入不同的 Markdown
-      if (file.type.startsWith('image/')) {
-        insertMarkdown(`![${file.name}](${uploadedFile.url})`)
-      } else {
-        insertMarkdown(`[${file.name}](${uploadedFile.url})`)
+      // 只在非 v24 版本时插入 Markdown 链接
+      if (settings.value.apiVersion !== 'v24') {
+        // 根据文件类型插入不同的 Markdown
+        if (file.type.startsWith('image/')) {
+          insertMarkdown(`![${file.name}](${uploadedFile.url})`)
+        } else {
+          insertMarkdown(`[${file.name}](${uploadedFile.url})`)
+        }
       }
     }
 
@@ -629,10 +625,10 @@ const submitMemo = async () => {
   }
 
   isSubmitting.value = true
+  const isEditMode = !!editingMemo.value
   try {
     const api = createApiService(settings.value.apiVersion)
     let response
-    const isEditMode = !!editingMemo.value
 
     if (isEditMode) {
       // 编辑模式
@@ -649,14 +645,46 @@ const submitMemo = async () => {
       showToast('更新成功')
     } else {
       // 新建模式
-      response = await api.createMemo(
-        settings.value.host,
-        settings.value.token,
-        content.value,
-        visibility.value,
-        uploadedFiles.value.map(file => file.id)
-      )
-      showToast('创建成功')
+      if (settings.value.apiVersion === 'v24' ) {
+        // v24 API 处理文件和文本混合内容
+        const result = await api.createMemo(
+          settings.value.host,
+          settings.value.token,
+          content.value,
+          visibility.value
+        )
+        if (uploadedFiles.value.length > 0) {
+              // 关联资源
+             if (result.data && result.data.name) {
+                const resources = uploadedFiles.value.map(file => ({
+                  createTime: new Date().toISOString(),
+                  name: file.name,
+                  type: file.type
+                }))
+                
+                await api.associateResources(
+                  settings.value.host,
+                  settings.value.token,
+                  result.data.name,
+                  { resources }
+                )
+              }
+        }
+        
+        
+        response = result.response
+        showToast('创建成功')
+      } else {
+        // 普通文本内容或其他版本 API
+        response = await api.createMemo(
+          settings.value.host,
+          settings.value.token,
+          content.value,
+          visibility.value,
+          uploadedFiles.value.map(file => file.id)
+        )
+        showToast('创建成功')
+      }
     }
 
     if (!response.ok) {

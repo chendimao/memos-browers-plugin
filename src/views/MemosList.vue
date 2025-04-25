@@ -10,7 +10,7 @@
             @click="selectTag(null)"
           >
             全部
-          </button>
+          </button> 
           <button
             v-for="tag in sortedTags"
             :key="tag"
@@ -80,7 +80,7 @@
           <div v-for="memo in memos" :key="memo.id" class="memo-item">
             <div class="memo-content" v-html="formatContent(memo.content)"></div>
             <div class="memo-meta">
-              <span class="memo-time">{{ formatTime(memo.createdTs) }}</span>
+              <span class="memo-time">{{ formatTime(memo.createdTs??memo.updateTime) }}</span>
               <span class="memo-visibility">
                 <i :class="getVisibilityIcon(memo.visibility)"></i>
               </span>
@@ -109,6 +109,7 @@ import { createApiService } from '../api'
 import CustomSelect from '../components/CustomSelect.vue'
 import TagSelector from '../components/TagSelector.vue'
 import { showToast } from '../utils/toast'
+import { formatTime } from '../utils'
 import { marked } from 'marked'
 
 const props = defineProps({
@@ -117,7 +118,6 @@ const props = defineProps({
     required: true
   }
 })
-
 const emits = defineEmits(['switchToEditor', 'editMemo'])
 
 // 状态管理
@@ -133,6 +133,7 @@ const limit = 20
 const isTagsExpanded = ref(false)
 const memosContainerRef = ref(null)
 const hasMore = ref(true)
+const nextPageToken = ref(null)
 const isLoadingMore = ref(false)
 
 // 获取可见性图标
@@ -149,11 +150,6 @@ const getVisibilityIcon = (visibility) => {
   }
 }
 
-// 格式化时间
-const formatTime = (timestamp) => {
-  const date = new Date(timestamp * 1000)
-  return date.toLocaleString()
-}
 
 // 格式化内容
 const formatContent = (content) => {
@@ -233,8 +229,11 @@ const fetchMemos = async () => {
       throw new Error('获取备忘录失败')
     }
 
-    const data = await response.json()
-    
+    let data = await response.json()
+    if ( props.settings.apiVersion === 'v24') {
+      nextPageToken.value = data.nextPageToken;
+        data = data.memos;
+      }  
     // 检查是否还有更多数据
     if (data.length < limit) {
       hasMore.value = false
@@ -336,7 +335,7 @@ const loadMore = async () => {
   isLoadingMore.value = true
   try {
     const api = createApiService(props.settings.apiVersion)
-    const offset = (page.value) * limit
+    const offset = nextPageToken.value ? nextPageToken.value : (page.value) * limit
     const response = await api.getMemos(
       props.settings.host,
       props.settings.token,
@@ -353,8 +352,14 @@ const loadMore = async () => {
       throw new Error('获取备忘录失败')
     }
 
-    const data = await response.json()
-    
+    let data = await response.json()
+      console.log(data);
+
+      if ( props.settings.apiVersion === 'v24') {
+      nextPageToken.value = data.nextPageToken;
+        data = data.memos;
+      } 
+
     // 如果返回的数据少于 limit，说明没有更多数据了
     if (data.length < limit) {
       hasMore.value = false
@@ -376,9 +381,8 @@ const sortedTags = computed(() => {
   if (!props.settings.preferredTags || props.settings.preferredTags.length === 0) {
     return tags.value
   }
-
-  const preferredTags = props.settings.preferredTags
-  const otherTags = tags.value.filter(tag => !preferredTags.includes(tag))
+  const preferredTags = props.settings.preferredTags.filter(tag => tag && tag.trim())
+  const otherTags = tags.value.filter(tag => !preferredTags.includes(tag) && tag && tag.trim())
   
   return [...preferredTags, ...otherTags]
 })

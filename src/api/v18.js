@@ -120,10 +120,7 @@ export const v18Api = {
         'Authorization': `Bearer ${token}`
       }
     })
-
-  
-
-    return response.json()
+ 
   },
 
   /**
