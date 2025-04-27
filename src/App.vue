@@ -660,10 +660,11 @@ const submitMemo = async () => {
 
     if (isEditMode) {
       // 编辑模式
+      console.log(editingMemo, 663);
       response = await api.updateMemo(
         currentSettings.host,
         currentSettings.token,
-        editingMemo.value.name,
+        currentSettings.apiVersion =='v24' ? editingMemo.value.name : editingMemo.value.id,
         {
           content: finalContent,
           visibility: visibility.value,

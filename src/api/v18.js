@@ -152,8 +152,6 @@ export const v18Api = {
    * @param {string} memo.content - 备忘录内容
    * @param {string} memo.visibility - 可见性设置
    * @param {Array} memo.resourceIdList - 资源ID列表
-   * @param {number} memo.createdTs - 创建时间戳
-   * @param {Array} memo.relationList - 关联列表
    * @returns {Promise<Response>}
    */
   async updateMemo(host, token, id, memo) {
@@ -163,7 +161,11 @@ export const v18Api = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(memo)
+      body: JSON.stringify({
+        content: memo.content,
+        visibility: memo.visibility,
+        resourceIdList: memo.resourceIdList || []
+      })
     })
   }
 }  
