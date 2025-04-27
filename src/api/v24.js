@@ -8,11 +8,10 @@ export const v24Api = {
    * @param {string} token - 访问令牌
    * @param {string} content - 备忘录内容
    * @param {string} visibility - 可见性设置
-   * @param {Array<string>} resourceIds - 资源ID列表
-   * @returns {Promise<Response>}
+   * @returns {Promise<Object>}
    */
-  async createMemo(host, token, content, visibility, resourceIds = []) {
-    const response = await fetch(`${host}/api/v1/memos`, {
+  async createMemo(host, token, content, visibility = 'PUBLIC', relationList = []) {
+    return await fetch(`${host}/api/v1/memos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -22,127 +21,373 @@ export const v24Api = {
         content,
         visibility,
         createdTs: Date.now(),
-        relationList: [],
-        resourceIdList: resourceIds
+        relationList: relationList, 
       })
     })
 
-    if (!response.ok) {
-      throw new Error('创建备忘录失败')
-    }
 
-    const data = await response.json()
-    return {
-      response,
-      data
-    }
+ 
   },
 
   /**
-   * 关联资源到备忘录
+   * 列出备忘录
    * @param {string} host - Memos 主机地址
    * @param {string} token - 访问令牌
-   * @param {string} memoName - 备忘录名称
-   * @param {Array<Object>} resources - 资源列表
-   * @returns {Promise<Response>}
+   * @param {string} parent - 父级路径
+   * @returns {Promise<Object>}
    */
-  async associateResources(host, token, memoName, resources) {
-    const response = await fetch(`${host}/api/v1/${memoName}`, {
+  async listMemos(host, token, parent = 'users/-') {
+    const response = await fetch(`${host}/api/v1/${parent}/memos`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('获取备忘录列表失败')
+    }
+
+    return response.json()
+  },
+
+  /**
+   * 获取备忘录
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @returns {Promise<Object>}
+   */
+  async getMemo(host, token, name) {
+    const response = await fetch(`${host}/api/v1/${name}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('获取备忘录失败')
+    }
+
+    return response.json()
+  },
+
+  /**
+   * 更新备忘录
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @param {string} content - 新内容
+   * @returns {Promise<Object>}
+   */
+  async updateMemo(host, token, name, content) {
+    const response = await fetch(`${host}/api/v1/${name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(resources)
-    })
+      body: JSON.stringify({
+        content: content.content,
+        visibility: content.visibility,
+      
+      })
+    }) 
 
-    if (!response.ok) {
-      throw new Error('关联资源失败')
-    }
-
-    return response
+    return response;
   },
 
   /**
-   * 测试连接
+   * 删除备忘录
    * @param {string} host - Memos 主机地址
    * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @returns {Promise<void>}
+   */
+  async deleteMemo(host, token, name) {
+    const response = await fetch(`${host}/api/v1/${name}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('删除备忘录失败')
+    }
+  },
+
+  /**
+   * 重命名标签
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} parent - 父级路径
+   * @param {string} oldTag - 旧标签
+   * @param {string} newTag - 新标签
    * @returns {Promise<Object>}
    */
-  async testConnection(host, token) {
-    const response = await fetch(`${host}/api/v1/auth/status`, {
-      method: 'POST',
-      headers: { 
+  async renameTag(host, token, parent, oldTag, newTag) {
+    const response = await fetch(`${host}/api/v1/${parent}/tags:rename`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({})
+      body: JSON.stringify({
+        old_tag: oldTag,
+        new_tag: newTag
+      })
     })
-    
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      throw new Error('重命名标签失败')
     }
-    
-    const data = await response.json()
-    
-    // 检查返回数据是否包含必要的字段
-    if (!data.name || !data.role) {
-      throw new Error('无效的 API 响应')
-    }
-    
-    // 检查用户状态
-    if (data.state !== 'NORMAL') {
-      throw new Error('用户状态异常')
-    }
-    
-    return { ok: true, data }
+
+    return response.json()
   },
 
   /**
-   * 上传资源
+   * 删除标签
    * @param {string} host - Memos 主机地址
    * @param {string} token - 访问令牌
-   * @param {File} file - 要上传的文件
-   * @param {string} visibility - 可见性设置
-   * @returns {Promise<Object>}
+   * @param {string} parent - 父级路径
+   * @param {string} tag - 标签名
+   * @returns {Promise<void>}
    */
-  async uploadResource(host, token, file, visibility) {
-    // 将文件转换为 base64
-    const base64Content = await new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        // 移除 base64 URL 的前缀（如 "data:image/jpeg;base64,"）
-        const base64 = reader.result.split(',')[1]
-        resolve(base64)
+  async deleteTag(host, token, parent, tag) {
+    const response = await fetch(`${host}/api/v1/${parent}/tags/${tag}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-      reader.onerror = reject
-      reader.readAsDataURL(file)
     })
 
-    const response = await fetch(`${host}/api/v1/resources`, {
+    if (!response.ok) {
+      throw new Error('删除标签失败')
+    }
+  },
+
+  /**
+   * 设置资源
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @param {Array<string>} resourceIds - 资源ID列表
+   * @returns {Promise<Object>}
+   */
+  async setResources(host, token, name, resourceIds) {
+    const response = await fetch(`${host}/api/v1/${name}/resources`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        resources: resourceIds.map(id => ({ id }))
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('设置资源失败')
+    }
+
+    return response.json()
+  },
+
+  /**
+   * 获取备忘录的资源列表
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} memoName - 备忘录名称
+   * @returns {Promise<Object>}
+   */
+  async listResources(host, token, memoName) {
+    const response = await fetch(`${host}/api/v1/${memoName}/resources`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('获取资源列表失败')
+    }
+
+    const data = await response.json()
+    
+    // 为每个资源添加正确的 URL
+    if (data.resources && Array.isArray(data.resources)) {
+      data.resources = data.resources.map(resource => ({
+        ...resource,
+        url: `${host}/file/${resource.name}/${resource.filename}?thumbnail=true`
+      }))
+    }
+
+    return data
+  },
+
+  /**
+   * 设置关系
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @param {Array<Object>} relations - 关系列表
+   * @returns {Promise<Object>}
+   */
+  async setRelations(host, token, name, relations) {
+    const response = await fetch(`${host}/api/v1/${name}/relations`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        relations: relations.map(relation => ({
+          type: relation.type,
+          memo: { id: relation.memoId }
+        }))
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('设置关系失败')
+    }
+
+    return response.json()
+  },
+
+  /**
+   * 列出关系
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @returns {Promise<Object>}
+   */
+  async listRelations(host, token, name) {
+    const response = await fetch(`${host}/api/v1/${name}/relations`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('获取关系列表失败')
+    }
+
+    return response.json()
+  },
+
+  /**
+   * 创建评论
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @param {string} content - 评论内容
+   * @returns {Promise<Object>}
+   */
+  async createComment(host, token, name, content) {
+    const response = await fetch(`${host}/api/v1/${name}/comments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        content: base64Content,
-        filename: file.name,
-        type: file.type,
-        visibility
+        comment: { content }
       })
     })
 
     if (!response.ok) {
-      throw new Error('上传失败')
+      throw new Error('创建评论失败')
     }
 
-    const data = await response.json()
-    return {
-      id: data.name,
-      name: data.name,
-      url: data.externalLink || `${host}/file/${data.name}/${data.filename}`,
-      type: file.type,
-      filename: file.name
+    return response.json()
+  },
+
+  /**
+   * 列出评论
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @returns {Promise<Object>}
+   */
+  async listComments(host, token, name) {
+    const response = await fetch(`${host}/api/v1/${name}/comments`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('获取评论列表失败')
+    }
+
+    return response.json()
+  },
+
+  /**
+   * 列出反应
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @returns {Promise<Object>}
+   */
+  async listReactions(host, token, name) {
+    const response = await fetch(`${host}/api/v1/${name}/reactions`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('获取反应列表失败')
+    }
+
+    return response.json()
+  },
+
+  /**
+   * 设置反应
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} name - 备忘录名称
+   * @param {string} type - 反应类型
+   * @returns {Promise<Object>}
+   */
+  async setReaction(host, token, name, type) {
+    const response = await fetch(`${host}/api/v1/${name}/reactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        reaction: { type }
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('设置反应失败')
+    }
+
+    return response.json()
+  },
+
+  /**
+   * 删除反应
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} id - 反应ID
+   * @returns {Promise<void>}
+   */
+  async deleteReaction(host, token, id) {
+    const response = await fetch(`${host}/api/v1/reactions/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('删除反应失败')
     }
   },
 
@@ -211,6 +456,124 @@ export const v24Api = {
   },
 
   /**
+   * 上传资源
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {File} file - 要上传的文件
+   * @param {string} visibility - 可见性设置
+   * @returns {Promise<Object>}
+   */
+  async uploadResource(host, token, file, visibility) {
+    // 将文件转换为 base64
+    const base64Content = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        // 移除 base64 URL 的前缀（如 "data:image/jpeg;base64,"）
+        const base64 = reader.result.split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+    const response = await fetch(`${host}/api/v1/resources`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        content: base64Content,
+        filename: file.name,
+        type: file.type,
+        visibility
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('上传失败')
+    }
+
+    const data = await response.json()
+    const fileUrl = data.externalLink || `${host}/file/${data.name}/${data.filename}`
+    
+    // 根据文件类型返回不同的 markdown 格式
+    let markdown = ''
+    if (file.type.startsWith('image/')) {
+      markdown = `![${file.name}](${fileUrl})`
+    } else {
+      markdown = `[${file.name}](${fileUrl})`
+    }
+    
+    return {
+      id: data.name,
+      name: data.name,
+      url: fileUrl,
+      type: file.type,
+      filename: file.name,
+      markdown: markdown
+    }
+  },
+
+  /**
+   * 测试连接
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @returns {Promise<Object>}
+   */
+  async testConnection(host, token) {
+    const response = await fetch(`${host}/api/v1/auth/status`, {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({})
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    // 检查返回数据是否包含必要的字段
+    if (!data.name || !data.role) {
+      throw new Error('无效的 API 响应')
+    }
+    
+    // 检查用户状态
+    if (data.state !== 'NORMAL') {
+      throw new Error('用户状态异常')
+    }
+    
+    return { ok: true, data }
+  },
+
+  /**
+   * 关联资源到备忘录
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @param {string} memoName - 备忘录名称
+   * @param {Array<Object>} resources - 资源列表
+   * @returns {Promise<Response>}
+   */
+  async associateResources(host, token, memoName, resources) {
+    const response = await fetch(`${host}/api/v1/${memoName}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(resources)
+    })
+
+    if (!response.ok) {
+      throw new Error('关联资源失败')
+    }
+
+    return response
+  },
+  /**
    * 获取备忘录列表
    * @param {string} host - Memos 主机地址
    * @param {string} token - 访问令牌
@@ -220,10 +583,28 @@ export const v24Api = {
    * @param {string} options.content - 搜索内容
    * @param {string} options.visibility - 可见性过滤
    * @param {string} options.tag - 标签过滤
-   * @returns {Promise<Array>}
+   * @returns {Promise<Object>}
    */
   async getMemos(host, token, { offset = null, limit = 10, content, visibility, tag } = {}) {
-    const url = new URL(`${host}/api/v1/memos`)
+    // 从缓存中获取用户信息
+    const cachedSettings = localStorage.getItem('memos-settings')
+    if (!cachedSettings) {
+      throw new Error('未找到用户信息')
+    }
+    
+    const settings = JSON.parse(cachedSettings)
+    if (!settings.userInfo || !settings.userInfo.name) {
+      throw new Error('用户信息不完整')
+    }
+
+    const username = settings.userInfo.name
+    const url = new URL(`${host}/api/v1/${username}/memos`)
+    
+    // 构建过滤条件
+    let filter = '';
+    if (content) {
+      filter = `content.contains("${content}")`;
+    }  
     
     // 使用 pageToken 替代 offset
     if (offset) {
@@ -232,8 +613,8 @@ export const v24Api = {
     
     url.searchParams.append('pageSize', limit)
     
-    if (content) {
-      url.searchParams.append('content', content)
+    if (filter) {
+      url.searchParams.append('filter', filter)
     }
     
     if (visibility && visibility !== 'all') {
@@ -244,61 +625,10 @@ export const v24Api = {
       url.searchParams.append('tag', tag)
     }
 
-    const res = await fetch(url.toString(), {
+    return await fetch(url.toString(), {
       headers: {
         'Authorization': `Bearer ${token}`
       }
-    })
-
-    if (!res.ok) {
-      throw new Error('获取备忘录列表失败')
-    }
-
-    return res;
-    
-  },
-
-  /**
-   * 删除备忘录
-   * @param {string} host - Memos 主机地址
-   * @param {string} token - 访问令牌
-   * @param {number} id - 备忘录ID
-   * @returns {Promise<void>}
-   */
-  async deleteMemo(host, token, id) {
-    const response = await fetch(`${host}/api/v1/memo/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`删除备忘录失败: ${response.statusText}`)
-    }
-  },
-
-  /**
-   * 更新备忘录
-   * @param {string} host - Memos 主机地址
-   * @param {string} token - 访问令牌
-   * @param {number} id - 备忘录ID
-   * @param {Object} memo - 备忘录数据
-   * @param {string} memo.content - 备忘录内容
-   * @param {string} memo.visibility - 可见性设置
-   * @param {Array} memo.resourceIdList - 资源ID列表
-   * @param {number} memo.createdTs - 创建时间戳
-   * @param {Array} memo.relationList - 关联列表
-   * @returns {Promise<Response>}
-   */
-  async updateMemo(host, token, id, memo) {
-    return fetch(`${host}/api/v1/memos/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(memo)
     })
   }
 } 

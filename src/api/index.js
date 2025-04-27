@@ -16,9 +16,7 @@ export const createApiService = (version) => {
     throw new Error(`不支持的 API 版本: ${version}`)
   }
 
-  return {
-    ...apiMap[version]
-  }
+  return apiMap[version]
 }
 
 /**

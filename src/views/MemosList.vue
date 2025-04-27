@@ -2,7 +2,7 @@
   <div class="memos-list-wrapper">
     <div class="memos-list">
       <!-- 标签列表 -->
-      <div v-if="settings.tagFilterStyle === 'list'" class="tag-list-container">
+      <div v-if="settings.tagFilterStyle === 'list' && settings.apiVersion !== 'v24'" class="tag-list-container">
         <div class="tag-list" :class="{ expanded: isTagsExpanded }">
           <button 
             class="tag-item" 
@@ -39,7 +39,7 @@
         <div class="filters">
           <div class="filters-row">
             <TagSelector
-              v-if="settings.tagFilterStyle === 'selector'"
+              v-if="settings.tagFilterStyle === 'selector' && settings.apiVersion !== 'v24'"
               :modelValue="selectedTag ? [selectedTag] : []"
               :options="tags"
               :placeholder="t('list.selectTag')"
@@ -88,9 +88,37 @@
                 <button class="edit-btn" @click="editMemo(memo)">
                   <i class="fas fa-edit"></i>
                 </button>
-                <button class="delete-btn" @click="deleteMemo(memo.id)">
+                <button class="delete-btn" @click="deleteMemo(settings.apiVersion == 'v24' ? memo.name : memo.id)">
                   <i class="fas fa-trash"></i>
                 </button>
+              </div>
+            </div>
+            
+            <!-- 资源列表展示 -->
+            <div v-if="settings.apiVersion === 'v24' && memo.resources && memo.resources.length > 0" class="resources-container">
+              <div class="resources-list">
+                <!-- 图片资源 -->
+                <div v-for="resource in memo.resources.filter(r => r.type.startsWith('image/'))" 
+                     :key="resource.name" 
+                     class="resource-item image-resource">
+                  <img :src="resource.url" 
+                       :alt="resource.filename"
+                       @click="openImagePreview(resource.url)"
+                       class="resource-image" />
+                  <span class="resource-filename">{{ resource.filename }}</span>
+                </div>
+                
+                <!-- 文件资源 -->
+                <div v-for="resource in memo.resources.filter(r => !r.type.startsWith('image/'))" 
+                     :key="resource.name" 
+                     class="resource-item file-resource">
+                  <a :href="resource.url" 
+                     :download="resource.filename"
+                     class="file-link">
+                    <i class="fas fa-file"></i>
+                    <span class="resource-filename">{{ resource.filename }}</span>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -234,6 +262,13 @@ const fetchMemos = async () => {
     if ( props.settings.apiVersion === 'v24') {
       nextPageToken.value = data.nextPageToken;
         data = data.memos;
+        for (const memo of data) {
+          const resources = await api.listResources(props.settings.host, props.settings.token, memo.name);
+          console.log(resources, 'resources');
+          if (resources && resources.resources.length > 0) {
+            memo.resources = resources.resources;
+          }
+        }
       }  
     // 检查是否还有更多数据
     if (data.length < limit) {
@@ -331,17 +366,16 @@ const handleScroll = async (e) => {
 
 // 加载更多数据
 const loadMore = async () => {
-  if (!hasMore.value || isLoadingMore.value) return
+  if (!hasMore.value || isLoadingMore.value || !nextPageToken.value) return
 
   isLoadingMore.value = true
   try {
     const api = createApiService(props.settings.apiVersion)
-    const offset = nextPageToken.value ? nextPageToken.value : (page.value) * limit
     const response = await api.getMemos(
       props.settings.host,
       props.settings.token,
       {
-        offset,
+        offset: nextPageToken.value,
         limit,
         visibility: props.settings.visibilityFilter,
         content: searchQuery.value,
@@ -354,15 +388,22 @@ const loadMore = async () => {
     }
 
     let data = await response.json()
-      console.log(data);
+    console.log(data);
 
-      if ( props.settings.apiVersion === 'v24') {
+    if (props.settings.apiVersion === 'v24') {
       nextPageToken.value = data.nextPageToken;
-        data = data.memos;
-      } 
+      data = data.memos;
+      for (const memo of data) {
+        const resources = await api.listResources(props.settings.host, props.settings.token, memo.name);
+        console.log(resources, 'resources');
+        if (resources && resources.resources.length > 0) {
+          memo.resources = resources.resources;
+        }
+      }
+    } 
 
-    // 如果返回的数据少于 limit，说明没有更多数据了
-    if (data.length < limit) {
+    // 如果返回的数据少于 limit 或没有 nextPageToken，说明没有更多数据了
+    if (data.length < limit || !nextPageToken.value) {
       hasMore.value = false
     }
 
@@ -387,6 +428,11 @@ const sortedTags = computed(() => {
   
   return [...preferredTags, ...otherTags]
 })
+
+// 图片预览功能
+const openImagePreview = (url) => {
+  window.open(url, '_blank')
+}
 </script>
 
 <style>
@@ -918,5 +964,87 @@ const sortedTags = computed(() => {
 
 .memos-extension.dark .loading-more {
   color: #999;
+}
+
+.resources-container {
+  margin-top: 12px;
+  padding: 8px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.resources-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.resource-item {
+  position: relative;
+}
+
+.image-resource {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
+  border: 1px solid #eee;
+}
+
+.image-resource:hover {
+  transform: scale(1.05);
+  border-color: #10B981;
+}
+
+.resource-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-resource {
+  padding: 6px 10px;
+  background-color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eee;
+}
+
+.file-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #333;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.file-link:hover {
+  color: #10B981;
+}
+
+.resource-filename {
+  font-size: 10px;
+  color: #666;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.image-resource .resource-filename {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2px 4px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 9px;
+  line-height: 1.2;
 }
 </style> 

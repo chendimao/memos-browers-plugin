@@ -663,7 +663,7 @@ const submitMemo = async () => {
       response = await api.updateMemo(
         currentSettings.host,
         currentSettings.token,
-        editingMemo.value.id,
+        editingMemo.value.name,
         {
           content: finalContent,
           visibility: visibility.value,
@@ -681,9 +681,11 @@ const submitMemo = async () => {
           finalContent,
           visibility.value
         )
+        console.log(uploadedFiles.value, result, 'result');
         if (uploadedFiles.value.length > 0) {
           // 关联资源
-          if (result.data && result.data.name) {
+          const data = await result.json();
+          if (data && data.name) {
             const resources = uploadedFiles.value.map(file => ({
               createTime: new Date().toISOString(),
               name: file.name,
@@ -693,14 +695,12 @@ const submitMemo = async () => {
             await api.associateResources(
               currentSettings.host,
               currentSettings.token,
-              result.data.name,
+             data.name,
               { resources }
             )
           }
         }
-        
-        
-        response = result.response
+        response = result;
         showToast(t('app.saveSuccess'))
       } else {
         // 普通文本内容或其他版本 API
@@ -1180,6 +1180,32 @@ watch(() => uploadedFiles.value, () => {
     updateEditorHeight()
   })
 }, { deep: true })
+
+// 处理标签输入
+const handleTagInput = (tag) => {
+  if (!tag) return
+  
+  // 根据设置决定标签输入后的行为
+  if (settings.value.tagInputBehavior === 'add') {
+    // 直接添加到当前标签列表
+    if (!selectedCustomTags.value.includes(tag)) {
+      selectedCustomTags.value.push(tag)
+    }
+  } else if (settings.value.tagInputBehavior === 'create') {
+    // 创建新备忘录
+    content.value = `#${tag} `
+    selectedCustomTags.value = [tag]
+    switchToEditor()
+  } else if (settings.value.tagInputBehavior === 'search') {
+    // 搜索标签
+    if (settings.value.apiVersion === 'v24') {
+      // v24 版本不执行标签搜索
+      return
+    }
+    selectedCustomTags.value = tag
+    switchToEditor()
+  }
+}
 </script>
 
 <style scoped>

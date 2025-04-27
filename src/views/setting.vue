@@ -119,48 +119,10 @@
         </div>
       </div>
 
-      <h2>{{ t('settings.tag') }}</h2>
-      <div class="form-group">
-        <label>{{ t('settings.tagBehavior') }}</label>
-      <CustomSelect
-        v-model="localSettings.tagBehavior"
-        :options="[
-          { value: 'space', label: t('settings.tagBehaviorOptions.space') },
-          { value: 'newline', label: t('settings.tagBehaviorOptions.newline') }
-        ]"
-        :disabled="isLoading"
-        @update:modelValue="handleTagBehaviorChange"
-      />
-      </div>
-      <div class="form-group">
-      <label>{{ localSettings.tagBehavior === 'space' ? t('settings.tagSpaceCount') : t('settings.tagNewlineCount') }}</label>
-        <div class="number-input">
-        <button 
-          @click="decrementCount" 
-          type="button" 
-          class="number-btn"
-          :disabled="isLoading"
-        >-</button>
-          <input 
-            type="number" 
-          v-model.number="localSettings.tagSpaceCount" 
-            min="1" 
-            max="5"
-            class="count-input"
-          :disabled="isLoading"
-        >
-        <button 
-          @click="incrementCount" 
-          type="button" 
-          class="number-btn"
-          :disabled="isLoading"
-        >+</button>
-        </div>
-        <div class="preview-box">
-          {{ t('settings.preview') }}: <span class="preview-content">{{ tagEndingPreview }}</span>
-        </div>
-    </div>
-    <div class="setting-item">
+      <h2 v-if="localSettings.apiVersion !== 'v24'">{{ t('settings.tag') }}</h2>
+      
+     
+    <div class="setting-item" v-if="localSettings.apiVersion !== 'v24'">
      <label>{{ t('settings.tagFilterStyle') }}</label>
      <CustomSelect
        v-model="localSettings.tagFilterStyle"
@@ -171,7 +133,7 @@
        :disabled="isLoading"
      />
       </div>
-    <div class="setting-item">
+    <div class="setting-item" v-if="localSettings.apiVersion !== 'v24'">
       <label>{{ t('settings.preferredTags') }}</label>
       <div class="setting-description">{{ t('settings.preferredTagsDescription') }}</div>
       <TagSelector
@@ -602,12 +564,6 @@ const isDev = ref(process.env.NODE_ENV === 'development')
 // 加载状态
 const isLoading = ref(false)
 
-// 计算标签结束符预览
-const tagEndingPreview = computed(() => {
-  const count = Math.min(Math.max(localSettings.value.tagSpaceCount, 1), 5)
-  const char = localSettings.value.tagBehavior === 'space' ? ' ' : '⏎'
-  return `#tag${char.repeat(count)}`
-})
 
 // 调试信息
 const debugInfo = computed(() => ({
@@ -753,7 +709,6 @@ const resetSettings = () => {
       customTags: '',
       template: '{content}\n\n来源：[{title}]({url})',
       enableShortcuts: true,
-      tagBehavior: 'space',
       tagSpaceCount: 1,
       defaultView: 'editor',
       showWordCount: true,
@@ -779,10 +734,6 @@ const cancelSettings = () => {
   emits('update:showSettings', false)
 }
 
-// 添加标签行为变化处理函数
-const handleTagBehaviorChange = (value) => {
-  localSettings.value.tagBehavior = value
-}
 
 // 监听设置变化时获取标签
 watch(() => localSettings.value.host, () => {
