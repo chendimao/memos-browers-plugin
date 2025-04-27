@@ -1,3 +1,9 @@
+# Memos Quick Note
+
+一个用于快速添加笔记到 Memos 的浏览器扩展。这个扩展允许你快速捕捉灵感，保存网页内容，并使用 Memos 管理你的知识。
+
+[English Documentation](README.en.md)
+
 # memos-browers-plugin
 Memos Quick Note - 您的智能笔记助手  快速捕捉灵感，轻松管理知识。计划支持 Memos v0.18/v0.24 双版本，一键保存网页内容，智能标签补全，文件图片上传，自定义快捷键，个性化设置，让您的笔记体验更高效、更智能。
 
