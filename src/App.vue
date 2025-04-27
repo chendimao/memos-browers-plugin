@@ -1,12 +1,12 @@
 <template>
-  <div class="memos-extension" :class="settings.theme" :style="containerStyle">
+  <div class="memos-extension" :class="{ 'dark': settings.theme === 'dark' }" :style="containerStyle">
     <header>
-      <h1>Memos Quick Note</h1>
+      <h1>{{ t('app.title') }}</h1>
       <div class="header-actions">
         <button 
           class="view-switch-btn" 
           @click="currentView === 'editor' ? switchToList() : switchToEditor()"
-          :title="currentView === 'editor' ? '切换到列表' : '切换到编辑器'"
+          :title="currentView === 'editor' ? t('app.switchToList') : t('app.switchToEditor')"
         >
           <i :class="currentView === 'editor' ? 'fas fa-list' : 'fas fa-edit'"></i>
         </button>
@@ -49,7 +49,7 @@
          <div class="editor-wrapper">
            <textarea
              v-model="content"
-             placeholder="现在的想法是..."
+             :placeholder="t('editor.placeholder')"
              class="content-editor"
              @keydown.ctrl.enter.prevent="submitMemo"
              @keydown.meta.enter.prevent="submitMemo"
@@ -77,35 +77,35 @@
            
            <!-- 统计信息 -->
            <div v-if="settings.showWordCount" class="stats-panel">
-             <span>字数: {{ wordCount }}</span>
-             <span>字符: {{ charCount }}</span>
-             <span>行数: {{ lineCount }}</span>
+             <span>{{ t('editor.wordCount') }}: {{ wordCount }}&nbsp;&nbsp;&nbsp;</span>
+             <span>{{ t('editor.charCount') }}: {{ charCount }}&nbsp;&nbsp;&nbsp;</span>
+             <span>{{ t('editor.lineCount') }}: {{ lineCount }}&nbsp;&nbsp;&nbsp;</span>
            </div>
          </div>
          
          <div class="toolbar">
            <!-- Markdown 操作菜单 -->
            <div class="markdown-tools">
-             <button title="标题 (Ctrl+H)" @click="insertMarkdown('# ')"><i class="fas fa-heading"></i></button>
-             <button title="粗体 (Ctrl+B)" @click="insertMarkdown('**', '**')"><i class="fas fa-bold"></i></button>
-             <button title="斜体 (Ctrl+I)" @click="insertMarkdown('*', '*')"><i class="fas fa-italic"></i></button>
-             <button title="删除线" @click="insertMarkdown('~~', '~~')"><i class="fas fa-strikethrough"></i></button>
+             <button :title="t('editor.tools.heading')" @click="insertMarkdown('# ')"><i class="fas fa-heading"></i></button>
+             <button :title="t('editor.tools.bold')" @click="insertMarkdown('**', '**')"><i class="fas fa-bold"></i></button>
+             <button :title="t('editor.tools.italic')" @click="insertMarkdown('*', '*')"><i class="fas fa-italic"></i></button>
+             <button :title="t('editor.tools.strikethrough')" @click="insertMarkdown('~~', '~~')"><i class="fas fa-strikethrough"></i></button>
              <span class="divider"></span>
-             <button title="无序列表" @click="insertMarkdown('- ')"><i class="fas fa-list-ul"></i></button>
-             <button title="有序列表" @click="insertMarkdown('1. ')"><i class="fas fa-list-ol"></i></button>
-             <button title="任务列表" @click="insertMarkdown('- [ ] ')"><i class="fas fa-tasks"></i></button>
+             <button :title="t('editor.tools.unorderedList')" @click="insertMarkdown('- ')"><i class="fas fa-list-ul"></i></button>
+             <button :title="t('editor.tools.orderedList')" @click="insertMarkdown('1. ')"><i class="fas fa-list-ol"></i></button>
+             <button :title="t('editor.tools.taskList')" @click="insertMarkdown('- [ ] ')"><i class="fas fa-tasks"></i></button>
              <span class="divider"></span>
-             <button title="引用" @click="insertMarkdown('> ')"><i class="fas fa-quote-right"></i></button>
-             <button title="代码块" @click="insertCodeBlock"><i class="fas fa-code"></i></button>
-             <button title="表格" @click="insertTable"><i class="fas fa-table"></i></button>
-             <button title="链接 (Ctrl+K)" @click="insertMarkdown('[', '](url)')"><i class="fas fa-link"></i></button>
-             <button title="分割线" @click="insertMarkdown('\n---\n')"><i class="fas fa-minus"></i></button>
+             <button :title="t('editor.tools.quote')" @click="insertMarkdown('> ')"><i class="fas fa-quote-right"></i></button>
+             <button :title="t('editor.tools.codeBlock')" @click="insertCodeBlock"><i class="fas fa-code"></i></button>
+             <button :title="t('editor.tools.table')" @click="insertTable"><i class="fas fa-table"></i></button>
+             <button :title="t('editor.tools.link')" @click="insertMarkdown('[', '](url)')"><i class="fas fa-link"></i></button>
+             <button :title="t('editor.tools.divider')" @click="insertMarkdown('\n---\n')"><i class="fas fa-minus"></i></button>
            </div>
            
            <!-- 其他操作菜单 -->
            <div class="action-tools">
              <div class="left-tools">
-               <label class="upload-btn" title="上传图片">
+               <label class="upload-btn" :title="t('editor.tools.uploadImage')">
                  <i class="fas fa-image"></i>
                  <input 
                    type="file" 
@@ -115,7 +115,7 @@
                    style="display: none"
                  >
                </label>
-               <label class="upload-btn" title="上传文件">
+               <label class="upload-btn" :title="t('editor.tools.uploadFile')">
                  <i class="fas fa-paperclip"></i>
                  <input 
                    type="file" 
@@ -130,18 +130,18 @@
                <TagSelector
                  v-model="selectedCustomTags"
                  :options="availableCustomTags"
-                 placeholder="选择标签..."
+                 :placeholder="t('editor.selectTag')"
                  @update:modelValue="handleCustomTagsChange"
                />
                <CustomSelect
                  v-model="visibility"
                  :options="[
-                   { value: 'PUBLIC', label: '所有人可见' },
-                   { value: 'PRIVATE', label: '仅自己可见' },
-                   { value: 'PROTECTED', label: '登录可见' }
+                   { value: 'PUBLIC', label: t('editor.visibility.public') },
+                   { value: 'PRIVATE', label: t('editor.visibility.private') },
+                   { value: 'PROTECTED', label: t('editor.visibility.protected') }
                  ]"
                />
-               <button class="submit-btn" @click="submitMemo">记下</button>
+               <button class="submit-btn" @click="submitMemo">{{ t('editor.submit') }}</button>
              </div>
            </div>
          </div>
@@ -149,7 +149,7 @@
          <!-- 上传进度条 -->
          <div v-if="isUploading" class="upload-progress">
            <div class="progress-bar" :style="{ width: uploadProgress + '%' }"></div>
-           <span class="progress-text">上传中... {{ uploadProgress }}%</span>
+           <span class="progress-text">{{ t('editor.uploading') }} {{ uploadProgress }}%</span>
          </div> 
  
       
@@ -178,6 +178,7 @@ import { showToast } from './utils/toast'
 import TagSelector from './components/TagSelector.vue'
 import CustomSelect from './components/CustomSelect.vue'
 import MemosList from './views/MemosList.vue'
+import { t } from './i18n'
 
 // 定义 emit
 const emit = defineEmits(['refresh', 'switchToList'])
@@ -201,7 +202,6 @@ const settings = useStorage('memos-settings', {
   token: '',
   apiVersion: 'v18',
   addSource: true,
-  addTag: true,
   useQuote: true,
   skipDefaultTags: false,
   defaultVisibility: 'PRIVATE',
@@ -292,7 +292,7 @@ const containerStyle = computed(() => {
   return baseStyle
 })
 
-// 添加 Chrome 扩展窗口的尺寸限制常量
+// 添加扩展窗口的尺寸限制常量
 const MAX_POPUP_WIDTH = 800
 const MAX_POPUP_HEIGHT = 600
 
@@ -432,9 +432,9 @@ onMounted(() => {
 })
 
 // 监听设置变化
-watch(() => settings.value, async (newSettings) => {
+watch(() => settings.value, (newSettings) => {
   if (newSettings.host && newSettings.token) {
-    await fetchRemoteTags()
+    fetchRemoteTags()
   }
 }, { deep: true })
 
@@ -620,7 +620,7 @@ const removeFile = async (fileId) => {
 // 合并提交和保存方法
 const submitMemo = async () => {
   if (!content.value.trim()) {
-    showToast('内容不能为空')
+    showToast(t('editor.emptyContent'))
     return
   }
 
@@ -630,65 +630,93 @@ const submitMemo = async () => {
     const api = createApiService(settings.value.apiVersion)
     let response
 
+    // 获取当前设置值
+    const currentSettings = settings.value
+
+    // 处理默认标签
+    let finalContent = content.value
+    
+    // 检查内容中是否包含标签
+    const contentTags = content.value.match(/#[^\s#]+/g) || []
+    const hasTags = contentTags.length > 0 || selectedCustomTags.value.length > 0
+    
+    // 如果内容中没有标签，且设置了自定义标签，且设置自动添加默认标签
+    if (!hasTags && currentSettings.customTags && currentSettings.skipDefaultTags) {
+      const customTags = currentSettings.customTags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      if (customTags.length > 0) {
+        // 确保内容末尾有换行符
+        if (!finalContent.endsWith('\n')) {
+          finalContent += '\n'
+        }
+        // 根据设置生成标签结束符
+        const count = Math.min(Math.max(currentSettings.tagSpaceCount, 1), 5)
+        const ending = currentSettings.tagBehavior === 'space' 
+          ? ' '.repeat(count)
+          : '\n'.repeat(count)
+        
+        finalContent += customTags.map(tag => `#${tag}`).join(ending) + ending
+      }
+    }
+
     if (isEditMode) {
       // 编辑模式
       response = await api.updateMemo(
-        settings.value.host,
-        settings.value.token,
+        currentSettings.host,
+        currentSettings.token,
         editingMemo.value.id,
         {
-          content: content.value,
+          content: finalContent,
           visibility: visibility.value,
           resourceIdList: uploadedFiles.value.map(file => file.id)
         }
       )
-      showToast('更新成功')
+      showToast(t('app.editSuccess'))
     } else {
       // 新建模式
-      if (settings.value.apiVersion === 'v24' ) {
+      if (currentSettings.apiVersion === 'v24') {
         // v24 API 处理文件和文本混合内容
         const result = await api.createMemo(
-          settings.value.host,
-          settings.value.token,
-          content.value,
+          currentSettings.host,
+          currentSettings.token,
+          finalContent,
           visibility.value
         )
         if (uploadedFiles.value.length > 0) {
-              // 关联资源
-             if (result.data && result.data.name) {
-                const resources = uploadedFiles.value.map(file => ({
-                  createTime: new Date().toISOString(),
-                  name: file.name,
-                  type: file.type
-                }))
-                
-                await api.associateResources(
-                  settings.value.host,
-                  settings.value.token,
-                  result.data.name,
-                  { resources }
-                )
-              }
+          // 关联资源
+          if (result.data && result.data.name) {
+            const resources = uploadedFiles.value.map(file => ({
+              createTime: new Date().toISOString(),
+              name: file.name,
+              type: file.type
+            }))
+            
+            await api.associateResources(
+              currentSettings.host,
+              currentSettings.token,
+              result.data.name,
+              { resources }
+            )
+          }
         }
         
         
         response = result.response
-        showToast('创建成功')
+        showToast(t('app.saveSuccess'))
       } else {
         // 普通文本内容或其他版本 API
         response = await api.createMemo(
-          settings.value.host,
-          settings.value.token,
-          content.value,
+          currentSettings.host,
+          currentSettings.token,
+          finalContent,
           visibility.value,
           uploadedFiles.value.map(file => file.id)
         )
-        showToast('创建成功')
+        showToast(t('app.saveSuccess'))
       }
     }
 
     if (!response.ok) {
-      throw new Error(isEditMode ? '更新失败' : '创建失败')
+      throw new Error(isEditMode ? t('app.editError') : t('app.saveError'))
     }
 
     // 清空编辑器内容
@@ -697,6 +725,8 @@ const submitMemo = async () => {
     uploadedFiles.value = []
     // 重置编辑状态
     editingMemo.value = null
+    // 清空选中的标签
+    selectedCustomTags.value = []
     // 刷新列表
     emit('refresh')
     
@@ -705,8 +735,8 @@ const submitMemo = async () => {
       currentView.value = 'list'
     }
   } catch (error) {
-    console.error(isEditMode ? '更新失败:' : '创建失败:', error)
-    showToast((isEditMode ? '更新失败: ' : '创建失败: ') + error.message, 'error')
+    console.error(isEditMode ? t('app.editError') : t('app.saveError'), error)
+    showToast((isEditMode ? t('app.editError') : t('app.saveError')) + error.message, 'error')
   } finally {
     isSubmitting.value = false
   }
@@ -773,37 +803,58 @@ const filteredTags = computed(() => {
 
 // 处理键盘事件
 const handleKeydown = (e) => {
-  if (!showTagSuggestions.value || filteredTags.value.length === 0) return
-  
-  switch (e.key) {
-    case 'ArrowUp':
-      e.preventDefault()
-      if (activeTagIndex.value === filteredTags.value.length - 1) {
-        // 如果是最后一项，跳转到第一项
-        activeTagIndex.value = 0
-      } else {
-        activeTagIndex.value = (activeTagIndex.value + 1) % filteredTags.value.length
-      }
-      break
-    case 'ArrowDown':
-      e.preventDefault()
-      if (activeTagIndex.value === 0) {
-        // 如果是第一项，跳转到最后一项
-        activeTagIndex.value = filteredTags.value.length - 1
-      } else {
-        activeTagIndex.value = (activeTagIndex.value - 1 + filteredTags.value.length) % filteredTags.value.length
-      }
-      break
-    case 'Enter':
-    case 'Tab':
-      if (filteredTags.value.length > 0) {
+  // 处理标签建议
+  if (showTagSuggestions.value && filteredTags.value.length > 0) {
+    switch (e.key) {
+      case 'ArrowUp':
         e.preventDefault()
-        selectTag(filteredTags.value[activeTagIndex.value])
-      }
-      break
-    case 'Escape':
-      showTagSuggestions.value = false
-      break
+        if (activeTagIndex.value === filteredTags.value.length - 1) {
+          // 如果是最后一项，跳转到第一项
+          activeTagIndex.value = 0
+        } else {
+          activeTagIndex.value = (activeTagIndex.value + 1) % filteredTags.value.length
+        }
+        break
+      case 'ArrowDown':
+        e.preventDefault()
+        if (activeTagIndex.value === 0) {
+          // 如果是第一项，跳转到最后一项
+          activeTagIndex.value = filteredTags.value.length - 1
+        } else {
+          activeTagIndex.value = (activeTagIndex.value - 1 + filteredTags.value.length) % filteredTags.value.length
+        }
+        break
+      case 'Enter':
+      case 'Tab':
+        if (filteredTags.value.length > 0) {
+          e.preventDefault()
+          selectTag(filteredTags.value[activeTagIndex.value])
+        }
+        break
+      case 'Escape':
+        showTagSuggestions.value = false
+        break
+    }
+    return
+  }
+
+  // 处理快捷键
+  if (settings.value.enableShortcuts) {
+    // 快速保存
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault()
+      submitMemo()
+    }
+    // 切换可见性
+    if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'p') {
+      e.preventDefault()
+      // 循环切换可见性
+      const visibilities = ['PUBLIC', 'PRIVATE', 'PROTECTED']
+      const currentIndex = visibilities.indexOf(visibility.value)
+      const nextIndex = (currentIndex + 1) % visibilities.length
+      visibility.value = visibilities[nextIndex]
+      showToast(t('editor.visibility.' + visibility.value.toLowerCase()))
+    }
   }
 }
 
@@ -815,9 +866,12 @@ const selectTag = (tag) => {
   const beforeCursor = text.slice(0, position)
   const afterCursor = text.slice(position)
   
+  // 获取当前设置值
+  const currentSettings = settings.value
+  
   // 根据设置生成结束符
-  const count = Math.min(Math.max(settings.value.tagSpaceCount, 1), 5)
-  const ending = settings.value.tagBehavior === 'space' 
+  const count = Math.min(Math.max(currentSettings.tagSpaceCount, 1), 5)
+  const ending = currentSettings.tagBehavior === 'space' 
     ? ' '.repeat(count)
     : '\n'.repeat(count)
   
@@ -910,7 +964,7 @@ watch([
   () => showSettings.value,
   () => content.value
 ], ([newWidth, newHeight, newListMaxHeight, newSettingHeight, newView, isShowingSettings]) => {
-  // 限制尺寸在 Chrome 扩展的最大限制内
+  // 限制尺寸在扩展的最大限制内
   const width = Math.min(newWidth, MAX_POPUP_WIDTH)
   let height
 

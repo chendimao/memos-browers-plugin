@@ -2,8 +2,7 @@
   <div class="tag-selector" ref="containerRef">
     <div 
       class="tag-input-container" 
-      @click="showDropdown = true"
-      @focusout="handleFocusOut"
+      @click="handleContainerClick"
     >
       <div class="selected-tags">
         <span v-for="tag in modelValue" :key="tag" class="tag-item">
@@ -17,6 +16,8 @@
         class="tag-filter"
         :placeholder="placeholder"
         @keydown="handleKeydown"
+        @focus="showDropdown = true"
+        @blur="handleBlur"
       />
     </div>
     <div 
@@ -30,7 +31,7 @@
         :key="tag"
         class="dropdown-item"
         :class="{ selected: modelValue.includes(tag) }"
-        @click="toggleTag(tag)"
+        @mousedown.prevent="toggleTag(tag)"
       >
         #{{ tag }}
         <span v-if="modelValue.includes(tag)" class="check-mark">✓</span>
@@ -40,7 +41,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -88,6 +89,25 @@ const filteredOptions = computed(() => {
   )
 })
 
+// 处理容器点击
+const handleContainerClick = () => {
+  showDropdown.value = true
+  nextTick(() => {
+    inputRef.value?.focus()
+  })
+}
+
+// 处理失去焦点
+const handleBlur = (e) => {
+  // 延迟关闭下拉框，以便处理点击事件
+  setTimeout(() => {
+    if (!containerRef.value?.contains(e.relatedTarget)) {
+      showDropdown.value = false
+      tagFilter.value = ''
+    }
+  }, 200)
+}
+
 // 处理键盘事件
 const handleKeydown = (e) => {
   if (e.key === 'Enter') {
@@ -98,17 +118,8 @@ const handleKeydown = (e) => {
     tagFilter.value = ''
   } else if (e.key === 'Escape') {
     showDropdown.value = false
+    tagFilter.value = ''
   }
-}
-
-// 处理失去焦点
-const handleFocusOut = (e) => {
-  // 延迟关闭下拉框，以便处理点击事件
-  setTimeout(() => {
-    if (!containerRef.value?.contains(e.relatedTarget)) {
-      showDropdown.value = false
-    }
-  }, 100)
 }
 
 // 切换标签
@@ -124,12 +135,22 @@ const toggleTag = (tag) => {
   
   emit('update:modelValue', newValue)
   tagFilter.value = ''
+  
+  // 保持输入框焦点
+  nextTick(() => {
+    inputRef.value?.focus()
+  })
 }
 
 // 移除标签
 const removeTag = (tag) => {
   const newValue = props.modelValue.filter(t => t !== tag)
   emit('update:modelValue', newValue)
+  
+  // 保持输入框焦点
+  nextTick(() => {
+    inputRef.value?.focus()
+  })
 }
 
 // 监听窗口大小变化
@@ -139,11 +160,23 @@ const handleResize = () => {
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
+  // 添加全局点击事件监听
+  document.addEventListener('click', handleDocumentClick)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  // 移除全局点击事件监听
+  document.removeEventListener('click', handleDocumentClick)
 })
+
+// 处理全局点击事件
+const handleDocumentClick = (e) => {
+  if (containerRef.value && !containerRef.value.contains(e.target)) {
+    showDropdown.value = false
+    tagFilter.value = ''
+  }
+}
 </script>
 
 <style scoped>

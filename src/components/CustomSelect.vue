@@ -3,8 +3,7 @@
     <div 
       class="select-input"
       :class="{ 'is-open': showDropdown }"
-      @click="toggleDropdown"
-      @focusout="handleFocusOut"
+      @click="handleContainerClick"
     >
       <span class="selected-value">{{ selectedLabel }}</span>
       <span class="arrow-icon">
@@ -22,7 +21,7 @@
         :key="option.value"
         class="dropdown-item"
         :class="{ selected: modelValue === option.value }"
-        @click="selectOption(option)"
+        @mousedown.prevent="selectOption(option)"
       >
         {{ option.label }}
         <span v-if="modelValue === option.value" class="check-mark">✓</span>
@@ -32,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -84,19 +83,9 @@ const dropdownStyle = computed(() => {
   }
 })
 
-// 切换下拉框显示状态
-const toggleDropdown = () => {
+// 处理容器点击
+const handleContainerClick = () => {
   showDropdown.value = !showDropdown.value
-}
-
-// 处理失去焦点
-const handleFocusOut = (e) => {
-  // 延迟关闭下拉框，以便处理点击事件
-  setTimeout(() => {
-    if (!containerRef.value?.contains(e.relatedTarget)) {
-      showDropdown.value = false
-    }
-  }, 100)
 }
 
 // 选择选项
@@ -112,11 +101,22 @@ const handleResize = () => {
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
+  // 添加全局点击事件监听
+  document.addEventListener('click', handleDocumentClick)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  // 移除全局点击事件监听
+  document.removeEventListener('click', handleDocumentClick)
 })
+
+// 处理全局点击事件
+const handleDocumentClick = (e) => {
+  if (containerRef.value && !containerRef.value.contains(e.target)) {
+    showDropdown.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -124,6 +124,7 @@ onUnmounted(() => {
   position: relative;
   min-width: 120px;
   width: 100%;
+  z-index: 1000;
 }
 
 .select-input {
@@ -137,6 +138,7 @@ onUnmounted(() => {
   justify-content: space-between;
   transition: all 0.2s;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .select-input:hover {
@@ -172,7 +174,7 @@ onUnmounted(() => {
   border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 1001;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 

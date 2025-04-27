@@ -9,7 +9,7 @@
             :class="{ active: !selectedTag }"
             @click="selectTag(null)"
           >
-            全部
+            {{ t('list.all') }}
           </button> 
           <button
             v-for="tag in sortedTags"
@@ -30,7 +30,7 @@
           :class="{ expanded: isTagsExpanded }"
           @click="toggleTagsExpand"
         >
-          {{ isTagsExpanded ? '收起' : '展开' }}
+          {{ isTagsExpanded ? t('list.collapse') : t('list.expand') }}
           <i class="fas fa-chevron-down"></i>
         </button>
       </div>
@@ -42,14 +42,14 @@
               v-if="settings.tagFilterStyle === 'selector'"
               :modelValue="selectedTag ? [selectedTag] : []"
               :options="tags"
-              placeholder="选择标签..."
+              :placeholder="t('list.selectTag')"
               @update:modelValue="handleTagChange"
             />
             <div class="search-box">
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="搜索内容..."
+                :placeholder="t('list.search')"
                 class="search-input"
               >
               <i class="fas fa-search search-icon"></i>
@@ -74,7 +74,7 @@
           <i class="fas fa-spinner fa-spin"></i>
         </div>
         <div v-else-if="memos.length === 0" class="empty-state">
-          {{ searchQuery ? '没有找到匹配的备忘录' : '暂无备忘录' }}
+          {{ searchQuery ? t('list.noResults') : t('list.noMemos') }}
         </div>
         <div v-else class="memo-list">
           <div v-for="memo in memos" :key="memo.id" class="memo-item">
@@ -95,7 +95,7 @@
             </div>
           </div>
           <div v-if="hasMore" class="loading-more">
-            <i class="fas fa-spinner fa-spin"></i> 加载更多...
+            <i class="fas fa-spinner fa-spin"></i> {{ t('list.loadMore') }}
           </div>
         </div>
       </div>
@@ -111,6 +111,7 @@ import TagSelector from '../components/TagSelector.vue'
 import { showToast } from '../utils/toast'
 import { formatTime } from '../utils'
 import { marked } from 'marked'
+import { t } from '../i18n'
 
 const props = defineProps({
   settings: {
@@ -255,16 +256,16 @@ const refreshMemos = () => {
 
 // 删除备忘录
 const deleteMemo = async (id) => {
-  if (!confirm('确定要删除这条备忘录吗？')) return
+  if (!confirm(t('list.confirmDelete'))) return
 
   try {
     const api = createApiService(props.settings.apiVersion)
     await api.deleteMemo(props.settings.host, props.settings.token, id)
-    showToast('删除成功')
+    showToast(t('list.deleteSuccess'))
     fetchMemos()
   } catch (error) {
     console.error('删除备忘录失败:', error)
-    showToast('删除失败：' + error.message, 'error')
+    showToast(t('list.deleteError') + error.message, 'error')
   }
 }
 
@@ -712,6 +713,7 @@ const sortedTags = computed(() => {
   gap: 4px;
   max-height: 32px;
   overflow: hidden;
+  padding-right: 1px;
   transition: max-height 0.3s ease;
 }
 

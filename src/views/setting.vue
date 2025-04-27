@@ -2,19 +2,19 @@
 <!-- 设置面板 -->
 <div v-if="showSettings" class="settings-panel">
   <div class="settings-content">
-      <h2>基本设置</h2>
+      <h2>{{ t('settings.basic') }}</h2>
       <div class="form-group">
-        <label>Memos 主页网址</label>
+        <label>{{ t('settings.host') }}</label>
       <input 
         v-model="localSettings.host" 
         type="text" 
-        placeholder="请输入 Memos 主页网址"
+        :placeholder="t('settings.hostPlaceholder')"
         :disabled="isLoading"
       >
       </div>
    
       <div class="form-group">
-        <label>API 版本</label>
+        <label>{{ t('settings.apiVersion') }}</label>
       <CustomSelect
         v-model="localSettings.apiVersion"
         :options="[
@@ -27,16 +27,16 @@
    
     
       <div class="form-group">
-      <label>{{ localSettings.apiVersion === 'v18' ? 'Access Token' : 'Access Token / OpenAPI' }}</label>
+      <label>{{ localSettings.apiVersion === 'v18' ? t('settings.token') : t('settings.tokenOpenAPI') }}</label>
       <input 
         v-model="localSettings.token" 
         type="password" 
-        :placeholder="localSettings.apiVersion === 'v18' ? '请输入 Memos Access Tokens' : '请输入 Access Token 或 OpenAPI'"
+        :placeholder="localSettings.apiVersion === 'v18' ? t('settings.tokenPlaceholder') : t('settings.tokenOpenAPIPlaceholder')"
         :disabled="isLoading"
       >
       </div>
 
-      <h2>内容设置</h2>
+      <h2>{{ t('settings.content') }}</h2>
     <div class="form-group checkbox ">
       <input 
         type="checkbox" 
@@ -44,17 +44,8 @@
         v-model="localSettings.addSource"
         :disabled="isLoading"
       >
-      <label for="addSource" class="label-content">自动添加来源信息</label>
+      <label for="addSource" class="label-content">{{ t('settings.addSource') }}</label>
     </div>
-      <div class="form-group checkbox">
-      <input 
-        type="checkbox" 
-        id="addTag" 
-        v-model="localSettings.addTag"
-        :disabled="isLoading"
-      >
-      <label for="addTag" class="label-content">自动添加 #quick-capture 标签</label>
-      </div>
       <div class="form-group checkbox">
       <input 
         type="checkbox" 
@@ -62,7 +53,7 @@
         v-model="localSettings.useQuote"
         :disabled="isLoading"
       >
-      <label for="useQuote" class="label-content">使用引用格式（>）包裹选中文本</label>
+      <label for="useQuote" class="label-content">{{ t('settings.useQuote') }}</label>
       </div>
       <div class="form-group checkbox">
       <input 
@@ -71,43 +62,43 @@
         v-model="localSettings.skipDefaultTags"
         :disabled="isLoading"
       >
-      <label for="skipDefaultTags" class="label-content">当内容包含标签时不添加默认自定义标签</label>
+      <label for="skipDefaultTags" class="label-content">{{ t('settings.skipDefaultTags') }}</label>
       </div>
 
-      <h2>默认设置</h2>
+      <h2>{{ t('settings.default') }}</h2>
       <div class="form-group">
-        <label>默认可见性</label>
+        <label>{{ t('settings.defaultVisibility') }}</label>
       <CustomSelect
         v-model="localSettings.defaultVisibility"
         :options="[
-          { value: 'PUBLIC', label: '所有人可见' },
-          { value: 'PRIVATE', label: '仅自己可见' },
-          { value: 'PROTECTED', label: '登录可见' }
+          { value: 'PUBLIC', label: t('settings.visibility.public') },
+          { value: 'PRIVATE', label: t('settings.visibility.private') },
+          { value: 'PROTECTED', label: t('settings.visibility.protected') }
         ]"
         :disabled="isLoading"
       />
       </div>
     
       <div class="form-group">
-        <label>自定义标签</label>
+        <label>{{ t('settings.customTags') }}</label>
       <input 
         v-model="localSettings.customTags" 
         type="text" 
-        placeholder="用逗号分隔，如: daily,note"
+        :placeholder="t('settings.customTagsPlaceholder')"
         :disabled="isLoading"
       >
       </div>
       <div class="form-group">
-        <label>内容模板</label>
+        <label>{{ t('settings.template') }}</label>
         <textarea
         v-model="localSettings.template"
-          placeholder="可用变量：{content}, {url}, {title}, {date}"
+          :placeholder="t('settings.templatePlaceholder')"
           rows="3"
         :disabled="isLoading"
         ></textarea>
       </div>
 
-      <h2>快捷键设置</h2>
+      <h2>{{ t('settings.shortcut') }}</h2>
       <div class="form-group checkbox">
       <input 
         type="checkbox" 
@@ -115,34 +106,34 @@
         v-model="localSettings.enableShortcuts"
         :disabled="isLoading"
       >
-        <label for="enableShortcuts">启用快捷键</label>
+        <label for="enableShortcuts">{{ t('settings.enableShortcuts') }}</label>
       </div>
     <div class="shortcut-list" v-if="localSettings.enableShortcuts">
         <div class="shortcut-item">
           <span>Ctrl/Cmd + Enter</span>
-          <span>快速保存</span>
+          <span>{{ t('settings.shortcuts.save') }}</span>
         </div>
         <div class="shortcut-item">
           <span>Ctrl/Cmd + Shift + P</span>
-          <span>切换可见性</span>
+          <span>{{ t('settings.shortcuts.visibility') }}</span>
         </div>
       </div>
 
-      <h2>标签设置</h2>
+      <h2>{{ t('settings.tag') }}</h2>
       <div class="form-group">
-        <label>标签输入后行为</label>
+        <label>{{ t('settings.tagBehavior') }}</label>
       <CustomSelect
         v-model="localSettings.tagBehavior"
         :options="[
-          { value: 'space', label: '添加空格' },
-          { value: 'newline', label: '添加换行' }
+          { value: 'space', label: t('settings.tagBehaviorOptions.space') },
+          { value: 'newline', label: t('settings.tagBehaviorOptions.newline') }
         ]"
         :disabled="isLoading"
         @update:modelValue="handleTagBehaviorChange"
       />
       </div>
       <div class="form-group">
-      <label>{{ localSettings.tagBehavior === 'space' ? '空格' : '换行' }}数量</label>
+      <label>{{ localSettings.tagBehavior === 'space' ? t('settings.tagSpaceCount') : t('settings.tagNewlineCount') }}</label>
         <div class="number-input">
         <button 
           @click="decrementCount" 
@@ -166,46 +157,46 @@
         >+</button>
         </div>
         <div class="preview-box">
-          预览：<span class="preview-content">{{ tagEndingPreview }}</span>
+          {{ t('settings.preview') }}: <span class="preview-content">{{ tagEndingPreview }}</span>
         </div>
     </div>
     <div class="setting-item">
-     <label>标签筛选样式</label>
+     <label>{{ t('settings.tagFilterStyle') }}</label>
      <CustomSelect
        v-model="localSettings.tagFilterStyle"
        :options="[
-         { value: 'list', label: '标签列表' },
-         { value: 'selector', label: '下拉选择器' }
+         { value: 'list', label: t('settings.tagFilterStyleOptions.list') },
+         { value: 'selector', label: t('settings.tagFilterStyleOptions.selector') }
        ]"
        :disabled="isLoading"
      />
       </div>
     <div class="setting-item">
-      <label>优先展示标签</label>
-      <div class="setting-description">选择需要优先展示的标签</div>
+      <label>{{ t('settings.preferredTags') }}</label>
+      <div class="setting-description">{{ t('settings.preferredTagsDescription') }}</div>
       <TagSelector
         v-model="localSettings.preferredTags"
         :options="tags"
-        placeholder="选择优先展示的标签..."
+        :placeholder="t('settings.preferredTagsPlaceholder')"
         multiple
         :disabled="isLoading || !localSettings.host || !localSettings.token"
       />
     </div>
 
-      <h2>页面设置</h2>
+      <h2>{{ t('settings.page') }}</h2>
       <div class="form-group">
-      <label>默认视图</label>
+      <label>{{ t('settings.defaultView') }}</label>
       <CustomSelect
         v-model="localSettings.defaultView"
         :options="[
-          { value: 'editor', label: '编辑器' },
-          { value: 'list', label: '列表' }
+          { value: 'editor', label: t('settings.defaultViewOptions.editor') },
+          { value: 'list', label: t('settings.defaultViewOptions.list') }
         ]"
         :disabled="isLoading"
       />
     </div>
     <div class="form-group">
-      <label>默认宽度 (最高800px)</label>
+      <label>{{ t('settings.width') }}</label>
         <div class="number-input">
         <button 
           @click="decrementWidth" 
@@ -230,7 +221,7 @@
       </div>
       </div>
       <div class="form-group">
-      <label>输入页面高度 (最高600px)</label>
+      <label>{{ t('settings.height') }}</label>
         <div class="number-input">
         <button 
           @click="decrementHeight" 
@@ -256,7 +247,7 @@
     </div>
 
     <div class="form-group">
-      <label>设置页面高度 (最高600px)</label>
+      <label>{{ t('settings.settingHeight') }}</label>
       <div class="number-input">
         <button 
           @click="decrementSettingHeight" 
@@ -283,7 +274,7 @@
         </div>
 
     <div class="form-group">
-      <label>列表页面高度 (最高600px)</label>
+      <label>{{ t('settings.listHeight') }}</label>
       <div class="number-input">
         <button 
           @click="decrementListHeight" 
@@ -310,46 +301,68 @@
     </div>
 
 
-    <h2>其他设置</h2>
+    <h2>{{ t('settings.other') }}</h2>
     <div class="form-group checkbox">
       <input type="checkbox" id="showWordCount" v-model="localSettings.showWordCount">
-      <label for="showWordCount">显示字数统计</label>
+      <label for="showWordCount">{{ t('settings.showWordCount') }}</label>
     </div>
 
     <div class="form-group">
-      <label>主题</label>
+      <label>{{ t('settings.theme') }}</label>
       <select v-model="localSettings.theme">
-        <option value="light">浅色</option>
-        <option value="dark">深色</option>
+        <option value="light">{{ t('settings.themeOptions.light') }}</option>
+        <option value="dark">{{ t('settings.themeOptions.dark') }}</option>
       </select>
-      </div>
+    </div>
 
-      <h2>配置管理</h2>
-      <div class="form-group">
-      <div class="config-actions">
-        <button class="export-btn" @click="exportSettings" :disabled="isLoading">导出配置</button>
-        <label class="import-btn" :class="{ 'disabled': isLoading }">
-          导入配置
-          <input 
-            type="file" 
-            accept=".json" 
-            @change="importSettings"
-            :disabled="isLoading"
-            style="display: none"
-          >
-        </label>
-        <button class="reset-btn" @click="resetSettings" :disabled="isLoading">重置设置</button>
-      </div>
+    <div class="form-group">
+      <label>{{ t('settings.language') }}</label>
+      <select v-model="currentLanguage" @change="handleLanguageChange">
+        <option v-for="lang in supportedLanguages" :key="lang.code" :value="lang.code">
+          {{ lang.name }}
+        </option>
+      </select>
+    </div>
+
+    <h2>{{ t('settings.config') }}</h2>
+    <div class="form-group">
+    <div class="config-actions">
+      <button class="export-btn" @click="exportSettings" :disabled="isLoading">{{ t('settings.export') }}</button>
+      <label class="import-btn" :class="{ 'disabled': isLoading }">
+        {{ t('settings.import') }}
+        <input 
+          type="file" 
+          accept=".json" 
+          @change="importSettings"
+          :disabled="isLoading"
+          style="display: none"
+        >
+      </label>
+      <button class="reset-btn" @click="resetSettings" :disabled="isLoading">{{ t('settings.reset') }}</button>
     </div>
   </div>
 
-  <div class="settings-footer">
-    <button class="cancel-btn" @click="cancelSettings" :disabled="isLoading">取消</button>
-    <button class="save-btn" @click="saveSettings" :disabled="isLoading">
-      {{ isLoading ? '保存中...' : '保存' }}
-    </button>
-      </div>
+  <h2>{{ t('settings.about.title') }}</h2>
+  <div class="about-section">
+    <p>{{ t('settings.about.title') }}</p>
+    <p>{{ t('settings.about.description') }}</p>
+    
+    <div class="contact-info">
+      <h3>{{ t('settings.about.contact') }}</h3>
+      <p><i class="fas fa-envelope"></i> {{ t('settings.about.email') }}：<a href="mailto:admin@chendimao.com">admin@chendimao.com</a></p>
+      <p><i class="fab fa-qq"></i> {{ t('settings.about.qq') }}：122803265</p>
+      <p><i class="fab fa-github"></i> {{ t('settings.about.github') }}：<a href="https://github.com/chendimao/memos-browers-plugin/" target="_blank">chendimao/memos-browers-plugin</a></p>
     </div>
+  </div>
+</div>
+
+<div class="settings-footer">
+  <button class="cancel-btn" @click="cancelSettings" :disabled="isLoading">{{ t('cancel') }}</button>
+  <button class="save-btn" @click="saveSettings" :disabled="isLoading">
+    {{ isLoading ? t('loading') : t('save') }}
+  </button>
+    </div>
+  </div>
 </template>
 
 
@@ -360,6 +373,7 @@ import { showToast } from '../utils/toast'
 import { createApiService } from '../api'
 import CustomSelect from '../components/CustomSelect.vue'
 import TagSelector from '../components/TagSelector.vue'
+import { t, getCurrentLanguage, setLanguage, getSupportedLanguages } from '../i18n'
 
     const props = defineProps({
         showSettings: {
@@ -442,19 +456,19 @@ watch(() => props.content, (newVal) => {
 
 // 监听本地设置变化
 watch(localSettings, (newVal) => {
-    // 只在设置面板打开时触发更新
-    if (showSettings.value) {
-        emits('update:settings', { ...newVal })
-    }
-    }, { deep: true })
+  // 移除自动保存逻辑
+  // if (showSettings.value) {
+  //   emits('update:settings', { ...newVal })
+  // }
+}, { deep: true })
 
 // 监听设置面板状态
 watch(() => props.showSettings, (newVal) => {
-    showSettings.value = newVal
-    // 当设置面板关闭时，同步本地设置到父组件
-    if (!newVal) {
-        emits('update:settings', { ...localSettings.value })
-    }
+  showSettings.value = newVal
+  // 当设置面板打开时，复制一份原始设置
+  if (newVal) {
+    localSettings.value = { ...props.settings }
+  }
 })
 
 // 添加标签格式校验函数
@@ -487,6 +501,16 @@ const validateTags = (tagsString) => {
     invalidTags,
     hasDuplicates
   }
+}
+
+// 语言相关
+const currentLanguage = ref(getCurrentLanguage())
+const supportedLanguages = getSupportedLanguages()
+
+// 修改语言变化处理函数
+const handleLanguageChange = (event) => {
+  // 只更新本地语言选择，不立即应用
+  currentLanguage.value = event.target.value
 }
 
 // 修改保存设置函数
@@ -549,8 +573,17 @@ const saveSettings = async () => {
     // 更新父组件设置
     emits('update:settings', settingsToSave)
     
-    // 关闭设置面板
-    emits('update:showSettings', false)
+    // 应用语言设置
+    if (setLanguage(currentLanguage.value)) {
+      showToast(t('settings.languageChanged'))
+      // 关闭设置面板
+      emits('update:showSettings', false)
+      // 刷新页面以应用新语言
+      window.location.reload()
+    } else {
+      // 关闭设置面板
+      emits('update:showSettings', false)
+    }
     
     showToast('设置保存成功！')
     // 保存成功后刷新标签
@@ -714,7 +747,6 @@ const resetSettings = () => {
       token: '',
       apiVersion: 'v18',
       addSource: true,
-      addTag: true,
       useQuote: true,
       skipDefaultTags: false,
       defaultVisibility: 'PRIVATE',
@@ -737,9 +769,13 @@ const resetSettings = () => {
   }
 }
 
-// 取消设置
+// 修改取消设置函数
 const cancelSettings = () => {
-  
+  // 恢复原始设置
+  localSettings.value = { ...props.settings }
+  // 恢复原始语言选择
+  currentLanguage.value = getCurrentLanguage()
+  // 关闭设置面板
   emits('update:showSettings', false)
 }
 
@@ -796,7 +832,7 @@ watch(() => localSettings.value.apiVersion, () => {
   background: #fff;
   padding: 16px;
   border-top: 1px solid #eee;
-  z-index: 100;
+  z-index: 9999;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
@@ -1313,5 +1349,76 @@ button:disabled {
 .memos-extension.dark :deep(.tag-selector-option.selected) {
   background: #10B981;
   color: white;
+}
+
+.about-section {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.about-section p {
+  margin: 8px 0;
+  line-height: 1.6;
+  color: #666;
+}
+
+.contact-info {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.contact-info h3 {
+  margin-bottom: 12px;
+  color: #333;
+  font-size: 16px;
+}
+
+.contact-info p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.contact-info i {
+  width: 20px;
+  color: #10B981;
+}
+
+.contact-info a {
+  color: #10B981;
+  text-decoration: none;
+}
+
+.contact-info a:hover {
+  text-decoration: underline;
+}
+
+/* 深色模式样式 */
+.memos-extension.dark .about-section {
+  background: #2d2d2d;
+}
+
+.memos-extension.dark .about-section p {
+  color: #999;
+}
+
+.memos-extension.dark .contact-info {
+  border-top-color: #404040;
+}
+
+.memos-extension.dark .contact-info h3 {
+  color: #fff;
+}
+
+.memos-extension.dark .contact-info i {
+  color: #10B981;
+}
+
+.memos-extension.dark .contact-info a {
+  color: #10B981;
 }
 </style>
