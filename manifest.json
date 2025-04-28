@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "__MSG_appDescription__",
   "default_locale": "en",
   "permissions": [
@@ -12,7 +12,7 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "assets/icons/icon16.png",
+      "16": "assets/icons/icon16.png",    
       "48": "assets/icons/icon48.png",
       "128": "assets/icons/icon128.png"
     }

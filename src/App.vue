@@ -61,7 +61,14 @@
            ></textarea>
            
            <!-- 标签补全弹窗 -->
-           <div v-if="showTagSuggestions && filteredTags.length > 0" class="tag-suggestions">
+           <div v-if="showTagSuggestions && filteredTags.length > 0" 
+                class="tag-suggestions"
+                :style="{
+                  position: 'absolute',
+                  top: tagSuggestionsPosition.top + 'px',
+                  left: tagSuggestionsPosition.left + 'px',
+                  width: tagSuggestionsPosition.width + 'px'
+                }">
              <div
                v-for="(tag, index) in filteredTags"
                :key="tag"
@@ -69,7 +76,6 @@
                @click="selectTag(tag)"
              >
                #{{ tag }}
-               <span class="tag-count" v-if="tagCounts[tag]">({{ tagCounts[tag] }})</span>
              </div>
            </div>
            
@@ -296,6 +302,13 @@ const containerStyle = computed(() => {
 const MAX_POPUP_WIDTH = 800
 const MAX_POPUP_HEIGHT = 600
 
+// 添加标签建议位置计算
+const tagSuggestionsPosition = ref({
+  top: 0,
+  left: 0,
+  width: 0
+})
+
 // 方法
 const openSettings = () => {
   showSettings.value = true
@@ -307,9 +320,9 @@ const handleSettingsSaved = async () => {
   
   // 更新编辑器设置
   if (settings.value.enableShortcuts) {
-    document.addEventListener('keydown', handleKeydown)
+    document.addEventListener('keydown', handleKeydown, { capture: true })
   } else {
-    document.removeEventListener('keydown', handleKeydown)
+    document.removeEventListener('keydown', handleKeydown, { capture: true })
   }
 
   // 更新标签
@@ -347,7 +360,8 @@ const fetchRemoteTags = async () => {
         return acc
       }, {})
     } else {
-      remoteTags =data;
+      // v24 版本的标签数据格式不同
+      remoteTags = data.map(tag => tag.name)
       // 更新标签计数
       tagCounts.value = data.reduce((acc, tag) => {
         acc[tag.name] = tag.count
@@ -365,7 +379,6 @@ const fetchRemoteTags = async () => {
     
     // 更新可用标签列表
     availableCustomTags.value = tags.value
- 
   } catch (error) {
     console.error('获取标签失败:', error)
   }
@@ -401,7 +414,7 @@ onMounted(() => {
 
   // 添加快捷键支持
   if (settings.value.enableShortcuts) {
-    document.addEventListener('keydown', handleKeydown)
+    document.addEventListener('keydown', handleKeydown, { capture: true })
   }
 
   // 初始获取标签
@@ -441,15 +454,15 @@ watch(() => settings.value, (newSettings) => {
 // 监听设置变化
 watch(() => settings.value.enableShortcuts, (newVal) => {
   if (newVal) {
-    document.addEventListener('keydown', handleKeydown)
+    document.addEventListener('keydown', handleKeydown, { capture: true })
   } else {
-    document.removeEventListener('keydown', handleKeydown)
+    document.removeEventListener('keydown', handleKeydown, { capture: true })
   }
 })
 
 // 组件卸载时清理
 onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('keydown', handleKeydown, { capture: true })
   document.removeEventListener('click', () => {})
 })
 
@@ -788,8 +801,23 @@ const handleInput = () => {
     currentTagInput.value = match[1].toLowerCase()
     showTagSuggestions.value = true
     activeTagIndex.value = 0
+    
+    // 计算标签建议列表的位置
+    nextTick(() => {
+      const textareaRect = textarea.getBoundingClientRect()
+      const editorWrapper = textarea.closest('.editor-wrapper')
+      const wrapperRect = editorWrapper.getBoundingClientRect()
+      
+      // 计算相对于编辑器容器的位置
+      tagSuggestionsPosition.value = {
+        top: textareaRect.bottom - wrapperRect.top + 4, // 在文本框下方 4px
+        left: textareaRect.left - wrapperRect.left,
+        width: textareaRect.width
+      }
+    })
   } else {
     showTagSuggestions.value = false
+    currentTagInput.value = ''
   }
 }
 
@@ -809,37 +837,37 @@ const handleKeydown = (e) => {
     switch (e.key) {
       case 'ArrowUp':
         e.preventDefault()
-        if (activeTagIndex.value === filteredTags.value.length - 1) {
-          // 如果是最后一项，跳转到第一项
-          activeTagIndex.value = 0
-        } else {
-          activeTagIndex.value = (activeTagIndex.value + 1) % filteredTags.value.length
+        e.stopPropagation() // 阻止事件冒泡
+        if (activeTagIndex.value > 0) {
+          activeTagIndex.value--
+          scrollActiveTagIntoView()
         }
-        break
+        return // 直接返回，不继续处理
       case 'ArrowDown':
         e.preventDefault()
-        if (activeTagIndex.value === 0) {
-          // 如果是第一项，跳转到最后一项
-          activeTagIndex.value = filteredTags.value.length - 1
-        } else {
-          activeTagIndex.value = (activeTagIndex.value - 1 + filteredTags.value.length) % filteredTags.value.length
+        e.stopPropagation() // 阻止事件冒泡
+        if (activeTagIndex.value < filteredTags.value.length - 1) {
+          activeTagIndex.value++
+          scrollActiveTagIntoView()
         }
-        break
+        return // 直接返回，不继续处理
       case 'Enter':
       case 'Tab':
         if (filteredTags.value.length > 0) {
           e.preventDefault()
+          e.stopPropagation() // 阻止事件冒泡
           selectTag(filteredTags.value[activeTagIndex.value])
         }
-        break
+        return // 直接返回，不继续处理
       case 'Escape':
+        e.preventDefault()
+        e.stopPropagation() // 阻止事件冒泡
         showTagSuggestions.value = false
-        break
+        return // 直接返回，不继续处理
     }
-    return
   }
 
-  // 处理快捷键
+  // 处理其他快捷键
   if (settings.value.enableShortcuts) {
     // 快速保存
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -1207,6 +1235,56 @@ const handleTagInput = (tag) => {
     switchToEditor()
   }
 }
+
+// 添加滚动活动标签到可视区域的函数
+const scrollActiveTagIntoView = () => {
+  nextTick(() => {
+    const activeTag = document.querySelector('.tag-item.active')
+    if (activeTag) {
+      activeTag.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  })
+}
+
+// 修改标签建议样式
+const tagSuggestionsStyle = `
+.tag-suggestions {
+  position: absolute;
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  scroll-behavior: smooth;
+  margin-top: 4px;
+}
+
+.tag-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.tag-item:last-child {
+  border-bottom: none;
+}
+
+.tag-item:hover,
+.tag-item.active {
+  background: #f0f9f6;
+  color: #10B981;
+}
+
+.tag-item.active {
+  background: #10B981;
+  color: white;
+}
+`
 </script>
 
 <style scoped>
@@ -1609,9 +1687,6 @@ textarea {
 
 .tag-suggestions {
   position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
   max-height: 200px;
   overflow-y: auto;
   background: white;
@@ -1619,23 +1694,19 @@ textarea {
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  margin-top: 4px;
-}
-
-/* 确保下拉框在内容上方显示 */
-.tag-suggestions {
-  position: fixed;
-  max-width: 550px;
-  transform: translateY(0);
 }
 
 .tag-item {
   padding: 8px 12px;
   cursor: pointer;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   transition: all 0.2s ease;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.tag-item:last-child {
+  border-bottom: none;
 }
 
 .tag-item:hover,
