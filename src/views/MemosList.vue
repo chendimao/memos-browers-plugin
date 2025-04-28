@@ -90,7 +90,7 @@
               </div>
             </div>
             <div class="memo-meta">
-              <span class="memo-time">{{ formatTime(memo.createdTs??memo.updateTime) }}</span>
+              <span class="memo-time">{{ formatTime( settings.apiVersion == 'v18' ? memo.createdTs :  memo.updateTime) }}</span>
               <span class="memo-visibility">
                 <i :class="getVisibilityIcon(memo.visibility)"></i>
               </span>
@@ -147,7 +147,7 @@ import { createApiService } from '../api'
 import CustomSelect from '../components/CustomSelect.vue'
 import TagSelector from '../components/TagSelector.vue'
 import { showToast } from '../utils/toast'
-import { formatTime } from '../utils'
+import { formatTime } from '../utils/index'
 import { marked } from 'marked'
 import { t } from '../i18n'
 
