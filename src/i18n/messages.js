@@ -196,6 +196,20 @@ export const messages = {
         private: '仅自己可见',
         protected: '登录可见'
       }
+    },
+    
+    memo: {
+      expand: '展开更多',
+      collapse: '收起',
+      edit: '编辑',
+      delete: '删除',
+      visibility: {
+        public: '公开',
+        private: '私密',
+        protected: '保护'
+      },
+      expandMore: '展开更多',
+      showLess: '收起'
     }
   },
   
@@ -385,6 +399,20 @@ export const messages = {
         private: 'Private',
         protected: 'Protected'
       }
+    },
+    
+    memo: {
+      expand: 'Show more',
+      collapse: 'Show less',
+      edit: 'Edit',
+      delete: 'Delete',
+      visibility: {
+        public: 'Public',
+        private: 'Private',
+        protected: 'Protected'
+      },
+      expandMore: 'Show More',
+      showLess: 'Show Less'
     }
   }
 }; 

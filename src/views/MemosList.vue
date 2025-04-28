@@ -77,8 +77,18 @@
           {{ searchQuery ? t('list.noResults') : t('list.noMemos') }}
         </div>
         <div v-else class="memo-list">
-          <div v-for="memo in memos" :key="memo.id" class="memo-item">
-            <div class="memo-content" v-html="formatContent(memo.content)"></div>
+          <div v-for="memo in memos" :key="memo.id" class="memo-item" :data-memo-id="memo.id">
+            <div class="memo-content-wrapper">
+              <div class="memo-content" :class="{ expanded: expandedItems.has(memo.id) }">
+                <div class="memo-text" v-html="formatContent(memo.content)"></div>
+              </div>
+              <div v-if="isOverflow(memo.id)" class="expand-button" @click="toggleExpand(memo.id)">
+                <div class="expand-button-content">
+                  <span>{{ expandedItems.has(memo.id) ? t('memo.showLess') : t('memo.expandMore') }}</span>
+                  <i class="fas" :class="expandedItems.has(memo.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </div>
+              </div>
+            </div>
             <div class="memo-meta">
               <span class="memo-time">{{ formatTime(memo.createdTs??memo.updateTime) }}</span>
               <span class="memo-visibility">
@@ -132,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { createApiService } from '../api'
 import CustomSelect from '../components/CustomSelect.vue'
 import TagSelector from '../components/TagSelector.vue'
@@ -164,6 +174,8 @@ const memosContainerRef = ref(null)
 const hasMore = ref(true)
 const nextPageToken = ref(null)
 const isLoadingMore = ref(false)
+const expandedItems = ref(new Set())
+const overflowStates = ref(new Map())
 
 // 获取可见性图标
 const getVisibilityIcon = (visibility) => {
@@ -276,6 +288,12 @@ const fetchMemos = async () => {
     }
     
     memos.value = data
+    // 在数据加载完成后检查每个 memo 的高度
+    nextTick(() => {
+      memos.value.forEach(memo => {
+        checkOverflow(memo)
+      })
+    })
   } catch (error) {
     console.error('获取备忘录失败:', error)
     showToast('获取备忘录失败: ' + error.message, 'error')
@@ -410,6 +428,12 @@ const loadMore = async () => {
     // 将新数据添加到现有数据后面
     memos.value = [...memos.value, ...data]
     page.value++
+    // 在加载更多数据后检查新加载的 memo 的高度
+    nextTick(() => {
+      data.forEach(memo => {
+        checkOverflow(memo)
+      })
+    })
   } catch (error) {
     console.error('加载更多备忘录失败:', error)
     showToast('加载更多失败: ' + error.message, 'error')
@@ -432,6 +456,33 @@ const sortedTags = computed(() => {
 // 图片预览功能
 const openImagePreview = (url) => {
   window.open(url, '_blank')
+}
+
+// 修改 isOverflow 方法
+const isOverflow = (memoId) => {
+  return overflowStates.value.get(memoId) || false
+}
+
+// 修改 checkOverflow 方法
+const checkOverflow = (memo) => {
+  nextTick(() => {
+    const element = document.querySelector(`[data-memo-id="${memo.id}"] .memo-content`)
+    if (!element) return
+    
+    // 等待内容渲染完成
+    setTimeout(() => {
+      const contentHeight = element.scrollHeight
+      overflowStates.value.set(memo.id, contentHeight > 300)
+    }, 100)
+  })
+}
+
+const toggleExpand = (memoId) => {
+  if (expandedItems.value.has(memoId)) {
+    expandedItems.value.delete(memoId)
+  } else {
+    expandedItems.value.add(memoId)
+  }
 }
 </script>
 
@@ -594,57 +645,106 @@ const openImagePreview = (url) => {
   border-bottom: none;
 }
 
+.memo-content-wrapper {
+  position: relative;
+  margin-bottom: 12px;
+}
+
 .memo-content {
-  margin-bottom: 8px;
-  line-height: 1.6;
   position: relative;
-  z-index: 1;
-}
-
-.memo-content img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 8px 0;
-  border-radius: 4px;
-  object-fit: contain;
   max-height: 300px;
-  width: auto;
-  position: relative;
-  z-index: 1;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  
+  &.expanded {
+    max-height: none;
+  }
+  
+  .memo-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    font-size: 14px;
+    color: var(--text-color);
+  }
 }
 
-/* 新增标签样式 */
-.memo-content :deep(a[href^="#"]) {
-  display: inline-block;
-  padding: 2px 8px;
-  background: #f0f9f6;
-  color: #10B981;
-  border-radius: 12px;
-  font-size: 12px;
-  margin: 0 4px 4px 0;
-  text-decoration: none;
-  transition: all 0.2s;
-  border: 1px solid transparent;
+.expand-button {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.95));
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+  transition: all 0.2s ease;
+  z-index: 2;
+  
+  .expand-button-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: #4B5563;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    
+    i {
+      font-size: 12px;
+      color: #10B981;
+      transition: transform 0.3s ease;
+    }
+  }
+  
+  &:hover {
+    .expand-button-content {
+      background: #10B981;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+      border-color: #10B981;
+      
+      i {
+        color: white;
+        transform: translateY(2px);
+      }
+    }
+  }
 }
 
-.memo-content :deep(a[href^="#"]:hover) {
-  background: #10B981;
-  color: white;
-  border-color: #10B981;
-}
-
-/* 深色模式下的标签样式 */
-.memos-extension.dark .memo-content :deep(a[href^="#"]) {
-  background: #2d2d2d;
-  color: #10B981;
-  border: 1px solid #404040;
-}
-
-.memos-extension.dark .memo-content :deep(a[href^="#"]:hover) {
-  background: #10B981;
-  color: white;
-  border-color: #10B981;
+.memo-content.expanded + .expand-button {
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.95));
+  
+  .expand-button-content {
+    background: rgba(255, 255, 255, 0.95);
+    color: #4B5563;
+    border-color: #e5e7eb;
+    
+    i {
+      color: #10B981;
+    }
+  }
+  
+  &:hover {
+    .expand-button-content {
+      background: #10B981;
+      color: white;
+      border-color: #10B981;
+      
+      i {
+        color: white;
+      }
+    }
+  }
 }
 
 .memo-meta {
@@ -1046,5 +1146,109 @@ const openImagePreview = (url) => {
   color: #fff;
   font-size: 9px;
   line-height: 1.2;
+}
+
+.memo-item {
+  .memo-header {
+    .memo-visibility {
+      i {
+        margin-right: 4px;
+        font-size: 12px;
+        
+        &.fa-lock {
+          color: #EF4444;
+        }
+        
+        &.fa-globe {
+          color: #10B981;
+        }
+        
+        &.fa-users {
+          color: #3B82F6;
+        }
+      }
+    }
+  }
+  
+  .memo-actions {
+    .action-button {
+      i {
+        font-size: 12px;
+        margin-right: 4px;
+        
+        &.fa-edit {
+          color: #3B82F6;
+        }
+        
+        &.fa-trash-alt {
+          color: #EF4444;
+        }
+      }
+    }
+  }
+  
+  .memo-tags {
+    .tag {
+      i {
+        margin-right: 4px;
+        font-size: 11px;
+        color: #10B981;
+      }
+    }
+  }
+  
+  .expand-button {
+    i {
+      margin-left: 4px;
+      font-size: 12px;
+      color: #10B981;
+    }
+  }
+}
+
+.memos-extension.dark .memo-item {
+  .memo-visibility {
+    i {
+      &.fa-lock {
+        color: #EF4444;
+      }
+      
+      &.fa-globe {
+        color: #10B981;
+      }
+      
+      &.fa-users {
+        color: #3B82F6;
+      }
+    }
+  }
+  
+  .memo-actions {
+    .action-button {
+      i {
+        &.fa-edit {
+          color: #3B82F6;
+        }
+        
+        &.fa-trash-alt {
+          color: #EF4444;
+        }
+      }
+    }
+  }
+  
+  .memo-tags {
+    .tag {
+      i {
+        color: #10B981;
+      }
+    }
+  }
+  
+  .expand-button {
+    i {
+      color: #10B981;
+    }
+  }
 }
 </style> 
