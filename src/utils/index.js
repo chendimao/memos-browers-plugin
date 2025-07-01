@@ -24,32 +24,14 @@ export const formatTime = (timestamp) => {
     console.error('Invalid date:', timestamp)
     return ''
   }
-  
-  const now = new Date()
-  const diff = now - date
-  const oneDay = 24 * 60 * 60 * 1000
-  
-  // 今天
-  if (diff < oneDay && date.getDate() === now.getDate()) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-  
-  // 昨天
-  if (diff < 2 * oneDay && date.getDate() === now.getDate() - 1) {
-    return '昨天 ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-  
-  // 本周
-  if (diff < 7 * oneDay) {
-    const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    return days[date.getDay()] + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-  
-  // 今年
-  if (date.getFullYear() === now.getFullYear()) {
-    return date.toLocaleDateString([], { month: '2-digit', day: '2-digit' })
-  }
-  
-  // 其他
-  return date.toLocaleDateString([], { year: 'numeric', month: '2-digit', day: '2-digit' })
+
+  // 返回 YYYY-MM-DD HH:mm:ss 格式
+  const pad = (n) => n.toString().padStart(2, '0')
+  const year = date.getFullYear()
+  const month = pad(date.getMonth() + 1)
+  const day = pad(date.getDate())
+  const hour = pad(date.getHours())
+  const minute = pad(date.getMinutes())
+  const second = pad(date.getSeconds())
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`
 } 

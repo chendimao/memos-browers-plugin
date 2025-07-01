@@ -80,7 +80,7 @@
           <div v-for="memo in memos" :key="memo.id" class="memo-item" :data-memo-id="memo.id">
             <div class="memo-content-wrapper">
               <div class="memo-content" :class="{ expanded: expandedItems.has(memo.id) }">
-                <div class="memo-text" v-html="formatContent(memo.content)"></div>
+                <div class="memo-text" >{{ formatContent(memo.content) }}</div>
               </div>
               <div v-if="isOverflow(memo.id)" class="expand-button" @click="toggleExpand(memo.id)">
                 <div class="expand-button-content">
@@ -177,6 +177,15 @@ const isLoadingMore = ref(false)
 const expandedItems = ref(new Set())
 const overflowStates = ref(new Map())
 
+// 自定义 renderer，使代码块以字符串形式展示
+const renderer = {
+  code({ text }) {
+    // 直接输出原始代码字符串，不做高亮和 HTML 转义
+    return `<pre class=\"plain-code\"><code>@${text}</code></pre>`
+  }
+}
+marked.use({ renderer })
+
 // 获取可见性图标
 const getVisibilityIcon = (visibility) => {
   switch (visibility) {
@@ -191,10 +200,9 @@ const getVisibilityIcon = (visibility) => {
   }
 }
 
-
 // 格式化内容
 const formatContent = (content) => {
-  // 处理 Markdown 格式
+  // 处理 Markdown 格式，代码块用自定义 renderer
   return marked(content)
 }
 
@@ -1250,5 +1258,16 @@ const toggleExpand = (memoId) => {
       color: #10B981;
     }
   }
+}
+
+.plain-code {
+  background: #f8f8f8;
+  color: #333;
+  border-radius: 4px;
+  padding: 8px;
+  font-family: 'Fira Mono', 'Consolas', 'Menlo', 'Monaco', 'monospace';
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 8px 0;
 }
 </style> 
