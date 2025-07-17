@@ -80,7 +80,7 @@
           <div v-for="memo in memos" :key="memo.id" class="memo-item" :data-memo-id="memo.id">
             <div class="memo-content-wrapper">
               <div class="memo-content" :class="{ expanded: expandedItems.has(memo.id) }">
-                <div class="memo-text" >{{ formatContent(memo.content) }}</div>
+                <div class="memo-text" v-html="formatContent(memo.content)"></div>
               </div>
               <div v-if="isOverflow(memo.id)" class="expand-button" @click="toggleExpand(memo.id)">
                 <div class="expand-button-content">
