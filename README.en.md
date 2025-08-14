@@ -1,6 +1,6 @@
 # Memos Quick Note
 
-A browser extension for quickly adding notes to Memos. This extension allows you to quickly capture ideas, save web content, and manage your knowledge with Memos.
+An Edge extension for quickly adding notes to Memos. This extension allows you to quickly capture ideas, save web content, and manage your knowledge with Memos.
 
 [中文文档](README.md)
 
@@ -20,13 +20,13 @@ A browser extension for quickly adding notes to Memos. This extension allows you
 
 1. Download the latest release from the [Releases](https://github.com/yourusername/memos-plugin/releases) page
 2. Unzip the downloaded file
-3. Open your browser and go to the extensions page
+3. Open Microsoft Edge and go to the extensions page
 4. Enable "Developer mode"
 5. Click "Load unpacked" and select the unzipped folder
 
 ## Usage
 
-1. Click the extension icon in your browser toolbar
+1. Click the extension icon in your Edge toolbar
 2. Start typing your note in the editor
 3. Use the toolbar for Markdown formatting
 4. Add tags with # symbol
@@ -68,5 +68,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- Email: your.email@example.com
-- GitHub: [yourusername](https://github.com/yourusername) 
+- Email: your.email@example.com 

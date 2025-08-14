@@ -1,7 +1,7 @@
 {
-  "name": "memos-plugin",
-  "version": "1.2.3",
-  "description": "A browser extension for Memos using Vue 3",
+  "name": "memos",
+  "version": "1.2.4",
+  "description": "An Edge extension for Memos using Vue 3",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

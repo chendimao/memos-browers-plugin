@@ -669,6 +669,10 @@ const toggleExpand = (memoId) => {
   }
   
   .memo-text {
+    img {
+      max-width: 100%;
+      height: auto;
+    }
     white-space: pre-wrap;
     word-break: break-word;
     line-height: 1.6;
