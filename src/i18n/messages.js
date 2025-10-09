@@ -61,6 +61,7 @@ export const messages = {
       addSource: '自动添加来源信息',
       useQuote: '使用引用格式（>）包裹选中文本',
       skipDefaultTags: '当内容不包含标签时添加默认自定义标签',
+      preserveFormatting: '右键添加时保留文本样式格式',
       
       // 默认设置
       defaultVisibility: '默认可见性',
@@ -264,6 +265,7 @@ export const messages = {
       addSource: 'Automatically add source information',
       useQuote: 'Wrap selected text with quote format (>)',
       skipDefaultTags: 'Add default custom tags when content contains no tags',
+      preserveFormatting: 'Preserve text formatting when adding via right-click',
       
       // Default settings
       defaultVisibility: 'Default Visibility',

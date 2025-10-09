@@ -25,8 +25,9 @@ const copyFiles = () => {
         }
       })
 
-      // 复制后台脚本
-      fs.copyFileSync('src/background.js', 'dist/background.js')
+      // 复制后台脚本和内容脚本
+      fs.copyFileSync('background.js', 'dist/background.js')
+      fs.copyFileSync('content.js', 'dist/content.js')
       
       // 复制 _locales 文件夹
       if (fs.existsSync('_locales')) {

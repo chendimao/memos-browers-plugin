@@ -64,6 +64,15 @@
       >
       <label for="skipDefaultTags" class="label-content">{{ t('settings.skipDefaultTags') }}</label>
       </div>
+      <div class="form-group checkbox">
+      <input 
+        type="checkbox" 
+        id="preserveFormatting" 
+        v-model="localSettings.preserveFormatting"
+        :disabled="isLoading"
+      >
+      <label for="preserveFormatting" class="label-content">{{ t('settings.preserveFormatting') }}</label>
+      </div>
 
       <h2>{{ t('settings.default') }}</h2>
       <div class="form-group">
@@ -530,8 +539,11 @@ const saveSettings = async () => {
       userInfo: result.data,
       preferredTags: localSettings.value.preferredTags || [] // 确保 preferredTags 被保存
     }
-    console.log(settingsToSave); 
-    useStorage('memos-settings', settingsToSave);
+    console.log('Memos: 准备保存的设置', settingsToSave); 
+    console.log('Memos: preserveFormatting值', settingsToSave.preserveFormatting);
+    
+    // 直接使用chrome.storage.local.set来确保设置被正确保存
+    chrome.storage.local.set({ 'memos-settings': settingsToSave });
     // 更新父组件设置
     emits('update:settings', settingsToSave)
     
@@ -718,7 +730,8 @@ const resetSettings = () => {
       listMaxHeight: 600,
       settingHeight: 600,
       tagFilterStyle: 'list',
-      preferredTags: [] // 确保重置时包含 preferredTags
+      preferredTags: [], // 确保重置时包含 preferredTags
+      preserveFormatting: true // 默认启用样式保留
     }
     showToast('设置已重置')
   }

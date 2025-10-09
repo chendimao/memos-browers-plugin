@@ -15,6 +15,13 @@
         </div>
       </div>
     </header>
+    
+    <!-- 格式保留通知 -->
+    <div v-if="formatPreservedNotification" class="format-notification">
+      <i class="fas fa-check-circle"></i>
+      <span>已保留原文格式样式</span>
+    </div>
+    
    <!-- 设置面板 -->
    <Setting
       v-model:content="content"
@@ -201,6 +208,7 @@ const editorRef = ref(null)
 const editingMemo = ref(null)
 const currentVisibility = ref('PUBLIC')
 const isSubmitting = ref(false)
+const formatPreservedNotification = ref(false)
 
 // 使用 useStorage 管理设置
 const settings = useStorage('memos-settings', {
@@ -225,7 +233,8 @@ const settings = useStorage('memos-settings', {
   showWordCount: true,
   enablePreview: true,
   theme: 'light',
-  defaultView: 'editor'
+  defaultView: 'editor',
+  preserveFormatting: true // 新增：右键添加时是否保留样式格式
 })
 
 // 文件上传相关状态
@@ -390,12 +399,21 @@ onMounted(() => {
   visibility.value = settings.value.defaultVisibility
 
   // 检查是否有存储的选中文本
-  chrome.storage.local.get(['selectedText', 'sourceUrl', 'sourceTitle'], (result) => {
+  chrome.storage.local.get(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting'], (result) => {
     if (result.selectedText) {
       content.value = formatContent(result.selectedText, result.sourceUrl, result.sourceTitle)
-      chrome.storage.local.remove(['selectedText', 'sourceUrl', 'sourceTitle'])
+      chrome.storage.local.remove(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting'])
       // 切换到编辑器视图
       currentView.value = 'editor'
+      
+      // 如果内容包含格式，添加用户提示
+      if (result.hasFormatting) {
+        console.log('Memos: 已保留原文的格式样式')
+        // 可以在这里添加一个临时的视觉提示
+        showFormatPreservedNotification()
+      } else {
+        console.log('Memos: 使用纯文本模式')
+      }
     }
   })
 
@@ -404,11 +422,17 @@ onMounted(() => {
     if (changes.selectedText && changes.selectedText.newValue) {
       content.value = formatContent(
         changes.selectedText.newValue,
-        changes.sourceUrl.newValue,
-        changes.sourceTitle.newValue
+        changes.sourceUrl?.newValue,
+        changes.sourceTitle?.newValue
       )
       // 切换到编辑器视图
       currentView.value = 'editor'
+      
+      // 如果内容包含格式，添加提示
+      if (changes.hasFormatting?.newValue) {
+        console.log('Memos: 已保留原文的格式样式')
+        showFormatPreservedNotification()
+      }
     }
   })
 
@@ -1121,6 +1145,14 @@ const removeTag = (tag) => {
 // 过滤标签
 const filterTags = () => {
   showTagDropdown.value = true
+}
+
+// 显示格式保留通知
+const showFormatPreservedNotification = () => {
+  formatPreservedNotification.value = true
+  setTimeout(() => {
+    formatPreservedNotification.value = false
+  }, 3000) // 3秒后自动隐藏
 }
 
 // 格式化内容
@@ -2250,5 +2282,39 @@ textarea {
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+/* 格式保留通知样式 */
+.format-notification {
+  background: #4CAF50;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.format-notification i {
+  font-size: 14px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 暗色主题下的格式通知 */
+.dark .format-notification {
+  background: #45a049;
 }
 </style> 
