@@ -19,7 +19,8 @@
         v-model="localSettings.apiVersion"
         :options="[
           { value: 'v18', label: '0.18' },
-          { value: 'v24', label: '0.24' }
+          { value: 'v24', label: '0.24' },
+          { value: 'v25', label: '0.25' }
         ]"
         :disabled="isLoading"
       />
@@ -369,7 +370,11 @@ import { t, getCurrentLanguage, setLanguage, getSupportedLanguages } from '../i1
 
 // 获取所有标签
 const fetchTags = async () => {
-  if (!localSettings.value.host || !localSettings.value.token) return
+  // 检查必要的设置是否存在
+  if (!localSettings.value.host || !localSettings.value.token) {
+    console.log('跳过标签获取：缺少主机地址或token')
+    return
+  }
 
   try {
     const api = createApiService(localSettings.value.apiVersion)
@@ -393,7 +398,14 @@ const fetchTags = async () => {
     }
   } catch (error) {
     console.error('获取标签失败:', error)
-    showToast('获取标签失败: ' + error.message, 'error')
+    
+    // 如果是用户信息不完整的错误，不显示错误提示（因为用户还在输入设置）
+    if (error.message.includes('用户信息不完整') || error.message.includes('未找到用户信息')) {
+      console.log('用户信息尚未保存，跳过标签获取')
+    } else {
+      showToast('获取标签失败: ' + error.message, 'error')
+    }
+    
     tags.value = []
     tagCounts.value = {}
   }
@@ -713,7 +725,7 @@ const resetSettings = () => {
     localSettings.value = {
       host: '',
       token: '',
-      apiVersion: 'v18',
+      apiVersion: 'v25',
       addSource: true,
       useQuote: true,
       skipDefaultTags: false,
@@ -748,20 +760,38 @@ const cancelSettings = () => {
 }
 
 
+// 监听设置变化时获取标签 - 使用防抖避免频繁调用
+let fetchTagsTimer = null
+
+const debouncedFetchTags = () => {
+  if (fetchTagsTimer) {
+    clearTimeout(fetchTagsTimer)
+  }
+  fetchTagsTimer = setTimeout(() => {
+    fetchTags()
+  }, 1000) // 1秒防抖
+}
+
 // 监听设置变化时获取标签
-watch(() => localSettings.value.host, () => {
-  fetchTags()
-}, { immediate: true })
+watch(() => localSettings.value.host, (newHost) => {
+  if (newHost && localSettings.value.token) {
+    debouncedFetchTags()
+  }
+})
 
 // 监听 token 变化时也获取标签
-watch(() => localSettings.value.token, () => {
-  fetchTags()
-}, { immediate: true })
+watch(() => localSettings.value.token, (newToken) => {
+  if (newToken && localSettings.value.host) {
+    debouncedFetchTags()
+  }
+})
 
 // 监听 API 版本变化时也获取标签
 watch(() => localSettings.value.apiVersion, () => {
-  fetchTags()
-}, { immediate: true })
+  if (localSettings.value.host && localSettings.value.token) {
+    debouncedFetchTags()
+  }
+})
 
 </script>
 

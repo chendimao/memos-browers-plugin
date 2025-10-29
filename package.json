@@ -1,7 +1,7 @@
 {
   "name": "memos",
-  "version": "1.2.5",
-  "description": "An Edge extension for Memos using Vue 3",
+  "version": "1.2.6",
+  "description": "An Edge extension for Memos using Vue 3, supports v0.18/v0.24/v0.25",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

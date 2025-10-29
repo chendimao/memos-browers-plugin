@@ -2,7 +2,7 @@
   <div class="memos-list-wrapper">
     <div class="memos-list">
       <!-- 标签列表 -->
-      <div v-if="settings.tagFilterStyle === 'list' && settings.apiVersion !== 'v24'" class="tag-list-container">
+      <div v-if="settings.tagFilterStyle === 'list' && settings.apiVersion !== 'v24' && settings.apiVersion !== 'v25'" class="tag-list-container">
         <div class="tag-list" :class="{ expanded: isTagsExpanded }">
           <button 
             class="tag-item" 
@@ -39,7 +39,7 @@
         <div class="filters">
           <div class="filters-row">
             <TagSelector
-              v-if="settings.tagFilterStyle === 'selector' && settings.apiVersion !== 'v24'"
+              v-if="settings.tagFilterStyle === 'selector' && settings.apiVersion !== 'v24' && settings.apiVersion !== 'v25'"
               :modelValue="selectedTag ? [selectedTag] : []"
               :options="tags"
               :placeholder="t('list.selectTag')"
@@ -77,15 +77,15 @@
           {{ searchQuery ? t('list.noResults') : t('list.noMemos') }}
         </div>
         <div v-else class="memo-list">
-          <div v-for="memo in memos" :key="memo.id" class="memo-item" :data-memo-id="memo.id">
+          <div v-for="memo in memos" :key="getMemoIdentifier(memo)" class="memo-item" :data-memo-id="getMemoIdentifier(memo)">
             <div class="memo-content-wrapper">
-              <div class="memo-content" :class="{ expanded: expandedItems.has(memo.id) }">
+              <div class="memo-content" :class="{ expanded: expandedItems.has(getMemoIdentifier(memo)) }">
                 <div class="memo-text" v-html="formatContent(memo.content)"></div>
               </div>
-              <div v-if="isOverflow(memo.id)" class="expand-button" @click="toggleExpand(memo.id)">
+              <div v-if="isOverflow(getMemoIdentifier(memo))" class="expand-button" @click="toggleExpand(getMemoIdentifier(memo))">
                 <div class="expand-button-content">
-                  <span>{{ expandedItems.has(memo.id) ? t('memo.showLess') : t('memo.expandMore') }}</span>
-                  <i class="fas" :class="expandedItems.has(memo.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                  <span>{{ expandedItems.has(getMemoIdentifier(memo)) ? t('memo.showLess') : t('memo.expandMore') }}</span>
+                  <i class="fas" :class="expandedItems.has(getMemoIdentifier(memo)) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                 </div>
               </div>
             </div>
@@ -94,18 +94,24 @@
               <span class="memo-visibility">
                 <i :class="getVisibilityIcon(memo.visibility)"></i>
               </span>
+              <!-- 标签显示 -->
+              <div v-if="memo.tags && memo.tags.length > 0" class="memo-tags">
+                <span v-for="tag in memo.tags" :key="tag" class="tag" @click="selectTag(tag)">
+                  <i class="fas fa-tag"></i>{{ tag }}
+                </span>
+              </div>
               <div class="memo-actions">
                 <button class="edit-btn" @click="editMemo(memo)">
                   <i class="fas fa-edit"></i>
                 </button>
-                <button class="delete-btn" @click="deleteMemo(settings.apiVersion == 'v24' ? memo.name : memo.id)">
+                <button class="delete-btn" @click="deleteMemo(getMemoIdentifier(memo))">
                   <i class="fas fa-trash"></i>
                 </button>
               </div>
             </div>
             
             <!-- 资源列表展示 -->
-            <div v-if="settings.apiVersion === 'v24' && memo.resources && memo.resources.length > 0" class="resources-container">
+            <div v-if="(settings.apiVersion === 'v24' || settings.apiVersion === 'v25') && memo.resources && memo.resources.length > 0" class="resources-container">
               <div class="resources-list">
                 <!-- 图片资源 -->
                 <div v-for="resource in memo.resources.filter(r => r.type.startsWith('image/'))" 
@@ -168,7 +174,7 @@ const tags = ref([])
 const tagCounts = ref({})
 const selectedTag = ref(null)
 const page = ref(1)
-const limit = 20
+const limit = 50 // 临时增加limit来测试
 const isTagsExpanded = ref(false)
 const memosContainerRef = ref(null)
 const hasMore = ref(true)
@@ -222,10 +228,11 @@ const fetchTags = async () => {
         return acc
       }, {})
     } else {
-      tags.value = (data || []).map(tag => tag.name)
+      // v24和v25版本返回的是字符串数组，不是对象数组
+      tags.value = data || []
       // 更新标签计数
       tagCounts.value = (data || []).reduce((acc, tag) => {
-        acc[tag.name] = tag.count || 1
+        acc[tag] = 1
         return acc
       }, {})
     }
@@ -279,21 +286,100 @@ const fetchMemos = async () => {
     }
 
     let data = await response.json()
-    if ( props.settings.apiVersion === 'v24') {
+    
+    if (props.settings.apiVersion === 'v24') {
       nextPageToken.value = data.nextPageToken;
-        data = data.memos;
-        for (const memo of data) {
-          const resources = await api.listResources(props.settings.host, props.settings.token, memo.name);
-          console.log(resources, 'resources');
-          if (resources && resources.resources.length > 0) {
-            memo.resources = resources.resources;
+      data = data.memos;
+      for (const memo of data) {
+        const resources = await api.listResources(props.settings.host, props.settings.token, memo.name);
+        console.log(resources, 'resources');
+        if (resources && resources.resources.length > 0) {
+          memo.resources = resources.resources;
+        }
+      }
+    } else if (props.settings.apiVersion === 'v25') {
+      // v25版本数据处理
+      nextPageToken.value = data.nextPageToken;
+      data = data.memos;
+      
+      // v25版本字段映射和处理
+      for (const memo of data) {
+        // 确保时间字段兼容性
+        if (memo.createTime && !memo.createdTs) {
+          memo.createdTs = new Date(memo.createTime).getTime();
+        }
+        if (memo.displayTime && !memo.displayTs) {
+          memo.displayTs = new Date(memo.displayTime).getTime();
+        }
+        if (memo.updateTime && !memo.updatedTs) {
+          memo.updatedTs = new Date(memo.updateTime).getTime();
+        }
+        
+        // 处理附件
+        if (memo.attachments && memo.attachments.length > 0) {
+          try {
+            const attachments = await api.listMemoAttachments(props.settings.host, props.settings.token, memo.name);
+            if (attachments && attachments.attachments) {
+              memo.resources = attachments.attachments;
+            }
+          } catch (error) {
+            console.warn('获取附件失败:', error);
           }
         }
-      }  
-    // 检查是否还有更多数据
-    if (data.length < limit) {
-      hasMore.value = false
+      }
     }
+    
+    // 客户端标签过滤（v25版本的临时解决方案）
+    if (props.settings.apiVersion === 'v25' && selectedTag.value) {
+      data = data.filter(memo => {
+        return memo.tags && memo.tags.includes(selectedTag.value)
+      })
+      console.log('客户端标签过滤结果:', data.length, '条便签包含标签:', selectedTag.value)
+    }
+    
+    // 检查是否还有更多数据
+    if (props.settings.apiVersion === 'v25') {
+      // v25版本：如果返回的数据量等于limit，假设还有更多数据
+      if (data.length >= limit) {
+        hasMore.value = true
+        console.log('fetchMemos保持hasMore为true (v25版本，数据量达到limit):', {
+          dataLength: data.length,
+          limit,
+          nextPageToken: nextPageToken.value
+        })
+      } else {
+        hasMore.value = false
+        console.log('fetchMemos设置hasMore为false (v25版本，数据量不足):', {
+          dataLength: data.length,
+          limit,
+          nextPageToken: nextPageToken.value
+        })
+      }
+    } else {
+      // 其他版本：综合判断nextPageToken和数据量
+      if ((!nextPageToken.value || nextPageToken.value === '') && data.length < limit) {
+        hasMore.value = false
+        console.log('fetchMemos设置hasMore为false (nextPageToken为空且数据不足):', {
+          dataLength: data.length,
+          limit,
+          nextPageToken: nextPageToken.value
+        })
+      } else {
+        hasMore.value = true
+        console.log('fetchMemos保持hasMore为true:', {
+          dataLength: data.length,
+          limit,
+          nextPageToken: nextPageToken.value,
+          reason: nextPageToken.value ? 'has nextPageToken' : 'data equals limit'
+        })
+      }
+    }
+    
+    console.log('fetchMemos完成:', {
+      dataCount: data.length,
+      hasMore: hasMore.value,
+      nextPageToken: nextPageToken.value
+    })
     
     memos.value = data
     // 在数据加载完成后检查每个 memo 的高度
@@ -313,6 +399,29 @@ const fetchMemos = async () => {
 // 刷新备忘录列表
 const refreshMemos = () => {
   fetchMemos()
+}
+
+// 获取便签标识符（根据API版本）
+const getMemoIdentifier = (memo) => {
+  let identifier
+  if (props.settings.apiVersion === 'v18') {
+    identifier = memo.id
+  } else if (props.settings.apiVersion === 'v24') {
+    identifier = memo.name
+  } else if (props.settings.apiVersion === 'v25') {
+    identifier = memo.name
+  } else {
+    // 默认尝试使用name，如果没有则使用id
+    identifier = memo.name || memo.id
+  }
+  
+  console.log('getMemoIdentifier:', {
+    apiVersion: props.settings.apiVersion,
+    memo: { id: memo.id, name: memo.name },
+    identifier
+  })
+  
+  return identifier
 }
 
 // 删除备忘录
@@ -392,7 +501,14 @@ const handleScroll = async (e) => {
 
 // 加载更多数据
 const loadMore = async () => {
-  if (!hasMore.value || isLoadingMore.value || !nextPageToken.value) return
+  if (!hasMore.value || isLoadingMore.value) return
+
+  console.log('loadMore开始执行:', {
+    hasMore: hasMore.value,
+    isLoadingMore: isLoadingMore.value,
+    nextPageToken: nextPageToken.value,
+    currentMemosCount: memos.value.length
+  })
 
   isLoadingMore.value = true
   try {
@@ -426,16 +542,94 @@ const loadMore = async () => {
           memo.resources = resources.resources;
         }
       }
-    } 
+    } else if (props.settings.apiVersion === 'v25') {
+      // v25版本数据处理
+      nextPageToken.value = data.nextPageToken;
+      data = data.memos;
+      
+      // v25版本字段映射和处理
+      for (const memo of data) {
+        // 确保时间字段兼容性
+        if (memo.createTime && !memo.createdTs) {
+          memo.createdTs = new Date(memo.createTime).getTime();
+        }
+        if (memo.displayTime && !memo.displayTs) {
+          memo.displayTs = new Date(memo.displayTime).getTime();
+        }
+        if (memo.updateTime && !memo.updatedTs) {
+          memo.updatedTs = new Date(memo.updateTime).getTime();
+        }
+        
+        // 处理附件
+        if (memo.attachments && memo.attachments.length > 0) {
+          try {
+            const attachments = await api.listMemoAttachments(props.settings.host, props.settings.token, memo.name);
+            if (attachments && attachments.attachments) {
+              memo.resources = attachments.attachments;
+            }
+          } catch (error) {
+            console.warn('获取附件失败:', error);
+          }
+        }
+      }
+    }
 
-    // 如果返回的数据少于 limit 或没有 nextPageToken，说明没有更多数据了
-    if (data.length < limit || !nextPageToken.value) {
-      hasMore.value = false
+    // 客户端标签过滤（v25版本的临时解决方案）
+    if (props.settings.apiVersion === 'v25' && selectedTag.value) {
+      data = data.filter(memo => {
+        return memo.tags && memo.tags.includes(selectedTag.value)
+      })
+      console.log('loadMore客户端标签过滤结果:', data.length, '条便签包含标签:', selectedTag.value)
+    }
+
+    // 根据版本和数据量判断是否还有更多数据
+    if (props.settings.apiVersion === 'v25') {
+      // v25版本：如果返回的数据量等于limit，假设还有更多数据
+      if (data.length >= limit) {
+        hasMore.value = true
+        console.log('loadMore保持hasMore为true (v25版本，数据量达到limit):', {
+          dataLength: data.length,
+          limit,
+          nextPageToken: nextPageToken.value
+        })
+      } else {
+        hasMore.value = false
+        console.log('loadMore设置hasMore为false (v25版本，数据量不足):', {
+          dataLength: data.length,
+          limit,
+          nextPageToken: nextPageToken.value
+        })
+      }
+    } else {
+      // 其他版本：综合判断nextPageToken和数据量
+      if ((!nextPageToken.value || nextPageToken.value === '') && data.length < limit) {
+        hasMore.value = false
+        console.log('loadMore设置hasMore为false (nextPageToken为空且数据不足):', {
+          dataLength: data.length,
+          limit,
+          nextPageToken: nextPageToken.value
+        })
+      } else {
+        hasMore.value = true
+        console.log('loadMore保持hasMore为true:', {
+          dataLength: data.length,
+          limit,
+          nextPageToken: nextPageToken.value,
+          reason: nextPageToken.value ? 'has nextPageToken' : 'data equals limit'
+        })
+      }
     }
 
     // 将新数据添加到现有数据后面
     memos.value = [...memos.value, ...data]
     page.value++
+    
+    console.log('loadMore完成:', {
+      newDataCount: data.length,
+      totalMemosCount: memos.value.length,
+      hasMore: hasMore.value,
+      nextPageToken: nextPageToken.value
+    })
     // 在加载更多数据后检查新加载的 memo 的高度
     nextTick(() => {
       data.forEach(memo => {
@@ -473,14 +667,24 @@ const isOverflow = (memoId) => {
 
 // 修改 checkOverflow 方法
 const checkOverflow = (memo) => {
+  const memoId = getMemoIdentifier(memo)
+  console.log('checkOverflow调用:', memoId, memo)
   nextTick(() => {
-    const element = document.querySelector(`[data-memo-id="${memo.id}"] .memo-content`)
+    const element = document.querySelector(`[data-memo-id="${memoId}"] .memo-content`)
+    console.log('DOM查询结果:', element, `[data-memo-id="${memoId}"] .memo-content`)
     if (!element) return
     
     // 等待内容渲染完成
     setTimeout(() => {
       const contentHeight = element.scrollHeight
-      overflowStates.value.set(memo.id, contentHeight > 300)
+      const isOverflowing = contentHeight > 300
+      overflowStates.value.set(memoId, isOverflowing)
+      console.log('溢出检查结果:', {
+        memoId,
+        contentHeight,
+        threshold: 300,
+        isOverflowing
+      })
     }, 100)
   })
 }
@@ -663,22 +867,23 @@ const toggleExpand = (memoId) => {
   max-height: 300px;
   overflow: hidden;
   transition: max-height 0.3s ease;
-  
-  &.expanded {
-    max-height: none;
-  }
-  
-  .memo-text {
-    img {
-      max-width: 100%;
-      height: auto;
-    }
-    white-space: pre-wrap;
-    word-break: break-word;
-    line-height: 1.6;
-    font-size: 14px;
-    color: var(--text-color);
-  }
+}
+
+.memo-content.expanded {
+  max-height: none;
+}
+
+.memo-content .memo-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.memo-content .memo-text img {
+  max-width: 100%;
+  height: auto;
 }
 
 .expand-button {
@@ -695,68 +900,64 @@ const toggleExpand = (memoId) => {
   padding-bottom: 8px;
   transition: all 0.2s ease;
   z-index: 2;
-  
-  .expand-button-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    color: #4B5563;
-    font-size: 13px;
-    transition: all 0.2s ease;
-    
-    i {
-      font-size: 12px;
-      color: #10B981;
-      transition: transform 0.3s ease;
-    }
-  }
-  
-  &:hover {
-    .expand-button-content {
-      background: #10B981;
-      color: white;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
-      border-color: #10B981;
-      
-      i {
-        color: white;
-        transform: translateY(2px);
-      }
-    }
-  }
+}
+
+.expand-button .expand-button-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #4B5563;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.expand-button .expand-button-content i {
+  font-size: 12px;
+  color: #10B981;
+  transition: transform 0.3s ease;
+}
+
+.expand-button:hover .expand-button-content {
+  background: #10B981;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+  border-color: #10B981;
+}
+
+.expand-button:hover .expand-button-content i {
+  color: white;
+  transform: translateY(2px);
 }
 
 .memo-content.expanded + .expand-button {
   height: 40px;
   background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.95));
-  
-  .expand-button-content {
-    background: rgba(255, 255, 255, 0.95);
-    color: #4B5563;
-    border-color: #e5e7eb;
-    
-    i {
-      color: #10B981;
-    }
-  }
-  
-  &:hover {
-    .expand-button-content {
-      background: #10B981;
-      color: white;
-      border-color: #10B981;
-      
-      i {
-        color: white;
-      }
-    }
-  }
+}
+
+.memo-content.expanded + .expand-button .expand-button-content {
+  background: rgba(255, 255, 255, 0.95);
+  color: #4B5563;
+  border-color: #e5e7eb;
+}
+
+.memo-content.expanded + .expand-button .expand-button-content i {
+  color: #10B981;
+}
+
+.memo-content.expanded + .expand-button:hover .expand-button-content {
+  background: #10B981;
+  color: white;
+  border-color: #10B981;
+}
+
+.memo-content.expanded + .expand-button:hover .expand-button-content i {
+  color: white;
 }
 
 .memo-meta {
@@ -801,6 +1002,36 @@ const toggleExpand = (memoId) => {
 .tag {
   color: #10B981;
   font-weight: 500;
+}
+
+.memo-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.memo-tags .tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: #f0f9f6;
+  border: 1px solid #10B981;
+  border-radius: 12px;
+  font-size: 11px;
+  color: #10B981;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.memo-tags .tag:hover {
+  background: #10B981;
+  color: white;
+}
+
+.memo-tags .tag i {
+  margin-right: 2px;
+  font-size: 10px;
 }
 
 /* 深色模式样式 */
@@ -863,6 +1094,17 @@ const toggleExpand = (memoId) => {
 
 .memos-extension.dark .tag {
   color: #10B981;
+}
+
+.memos-extension.dark .memo-tags .tag {
+  background: #2d2d2d;
+  border-color: #10B981;
+  color: #10B981;
+}
+
+.memos-extension.dark .memo-tags .tag:hover {
+  background: #10B981;
+  color: white;
 }
 
 .tag-list {
@@ -1096,24 +1338,26 @@ const toggleExpand = (memoId) => {
 }
 
 .image-resource {
-  width: 80px;
-  height: 80px;
+  max-width: 200px;
   border-radius: 4px;
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s;
   border: 1px solid #eee;
+  display: inline-block;
 }
 
 .image-resource:hover {
-  transform: scale(1.05);
+  transform: scale(1.02);
   border-color: #10B981;
 }
 
 .resource-image {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  max-height: 150px;
+  object-fit: contain;
+  display: block;
 }
 
 .file-resource {
@@ -1160,108 +1404,74 @@ const toggleExpand = (memoId) => {
   line-height: 1.2;
 }
 
-.memo-item {
-  .memo-header {
-    .memo-visibility {
-      i {
-        margin-right: 4px;
-        font-size: 12px;
-        
-        &.fa-lock {
-          color: #EF4444;
-        }
-        
-        &.fa-globe {
-          color: #10B981;
-        }
-        
-        &.fa-users {
-          color: #3B82F6;
-        }
-      }
-    }
-  }
-  
-  .memo-actions {
-    .action-button {
-      i {
-        font-size: 12px;
-        margin-right: 4px;
-        
-        &.fa-edit {
-          color: #3B82F6;
-        }
-        
-        &.fa-trash-alt {
-          color: #EF4444;
-        }
-      }
-    }
-  }
-  
-  .memo-tags {
-    .tag {
-      i {
-        margin-right: 4px;
-        font-size: 11px;
-        color: #10B981;
-      }
-    }
-  }
-  
-  .expand-button {
-    i {
-      margin-left: 4px;
-      font-size: 12px;
-      color: #10B981;
-    }
-  }
+.memo-item .memo-header .memo-visibility i {
+  margin-right: 4px;
+  font-size: 12px;
 }
 
-.memos-extension.dark .memo-item {
-  .memo-visibility {
-    i {
-      &.fa-lock {
-        color: #EF4444;
-      }
-      
-      &.fa-globe {
-        color: #10B981;
-      }
-      
-      &.fa-users {
-        color: #3B82F6;
-      }
-    }
-  }
-  
-  .memo-actions {
-    .action-button {
-      i {
-        &.fa-edit {
-          color: #3B82F6;
-        }
-        
-        &.fa-trash-alt {
-          color: #EF4444;
-        }
-      }
-    }
-  }
-  
-  .memo-tags {
-    .tag {
-      i {
-        color: #10B981;
-      }
-    }
-  }
-  
-  .expand-button {
-    i {
-      color: #10B981;
-    }
-  }
+.memo-item .memo-header .memo-visibility i.fa-lock {
+  color: #EF4444;
+}
+
+.memo-item .memo-header .memo-visibility i.fa-globe {
+  color: #10B981;
+}
+
+.memo-item .memo-header .memo-visibility i.fa-users {
+  color: #3B82F6;
+}
+
+.memo-item .memo-actions .action-button i {
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+.memo-item .memo-actions .action-button i.fa-edit {
+  color: #3B82F6;
+}
+
+.memo-item .memo-actions .action-button i.fa-trash-alt {
+  color: #EF4444;
+}
+
+.memo-item .memo-tags .tag i {
+  margin-right: 4px;
+  font-size: 11px;
+  color: #10B981;
+}
+
+.memo-item .expand-button i {
+  margin-left: 4px;
+  font-size: 12px;
+  color: #10B981;
+}
+
+.memos-extension.dark .memo-item .memo-visibility i.fa-lock {
+  color: #EF4444;
+}
+
+.memos-extension.dark .memo-item .memo-visibility i.fa-globe {
+  color: #10B981;
+}
+
+.memos-extension.dark .memo-item .memo-visibility i.fa-users {
+  color: #3B82F6;
+}
+
+.memos-extension.dark .memo-item .memo-actions .action-button i.fa-edit {
+  color: #3B82F6;
+}
+
+.memos-extension.dark .memo-item .memo-actions .action-button i.fa-trash-alt {
+  color: #EF4444;
+}
+
+.memos-extension.dark .memo-item .memo-tags .tag i {
+  color: #10B981;
+}
+
+.memos-extension.dark .memo-item .expand-button i {
+  color: #10B981;
 }
 
 .plain-code {

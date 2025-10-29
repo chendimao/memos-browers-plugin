@@ -402,12 +402,16 @@ export const v24Api = {
       // 从缓存中获取用户信息
       const cachedSettings = localStorage.getItem('memos-settings')
       if (!cachedSettings) {
-        throw new Error('未找到用户信息')
+        // 如果没有缓存设置，尝试使用通用端点
+        console.log('未找到缓存设置，尝试使用通用端点获取标签')
+        return await this.getTagsWithoutUserInfo(host, token)
       }
       
       const settings = JSON.parse(cachedSettings)
       if (!settings.userInfo || !settings.userInfo.name) {
-        throw new Error('用户信息不完整')
+        // 如果用户信息不完整，尝试使用通用端点
+        console.log('用户信息不完整，尝试使用通用端点获取标签')
+        return await this.getTagsWithoutUserInfo(host, token)
       }
       
       // 检查是否有缓存的标签
@@ -445,6 +449,56 @@ export const v24Api = {
     } catch (error) {
       console.error('获取标签失败:', error)
       throw error
+    }
+  },
+
+  /**
+   * 在没有用户信息时获取标签的备用方法
+   * @param {string} host - Memos 主机地址
+   * @param {string} token - 访问令牌
+   * @returns {Promise<Array>}
+   */
+  async getTagsWithoutUserInfo(host, token) {
+    try {
+      // 尝试使用通用的备忘录端点
+      const endpoints = [
+        `${host}/api/v1/users/-/memos?pageSize=100`,
+        `${host}/api/v1/memos?pageSize=100`
+      ];
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            
+            // 从 memos 中提取所有标签并去重
+            const allTags = (data.memos || []).reduce((tags, memo) => {
+              if (memo.tags && Array.isArray(memo.tags)) {
+                return [...tags, ...memo.tags]
+              }
+              return tags
+            }, []);
+            
+            const uniqueTags = [...new Set(allTags)];
+            return uniqueTags;
+          }
+        } catch (error) {
+          console.log(`端点 ${endpoint} 失败:`, error.message);
+          continue;
+        }
+      }
+
+      // 如果所有端点都失败，返回空数组
+      return [];
+    } catch (error) {
+      console.error('备用标签获取方法失败:', error);
+      return [];
     }
   },
 
@@ -516,37 +570,61 @@ export const v24Api = {
   },
 
   /**
-   * 测试连接
+   * 测试连接 - v0.24版本兼容多个端点
    * @param {string} host - Memos 主机地址
    * @param {string} token - 访问令牌
    * @returns {Promise<Object>}
    */
   async testConnection(host, token) {
-    const response = await fetch(`${host}/api/v1/auth/status`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({})
-    })
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    // v0.24版本尝试多个可能的端点
+    const endpoints = [
+      { url: `${host}/api/v1/me`, method: 'GET' },
+      { url: `${host}/api/v1/user/me`, method: 'GET' },
+      { url: `${host}/api/v1/auth/status`, method: 'POST' }
+    ];
+
+    let lastError = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        const options = {
+          method: endpoint.method,
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        };
+
+        if (endpoint.method === 'POST') {
+          options.body = JSON.stringify({});
+        }
+
+        const response = await fetch(endpoint.url, options);
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          // 检查返回数据是否包含用户信息
+          if (data.name || data.username || data.id) {
+            return { 
+              ok: true, 
+              data: {
+                name: data.name || data.username || `user_${data.id}`,
+                role: data.role || 'USER',
+                state: data.state || 'NORMAL',
+                id: data.id,
+                endpoint: endpoint.url
+              }
+            };
+          }
+        }
+      } catch (error) {
+        lastError = error;
+        continue;
+      }
     }
     
-    const data = await response.json()
-    
-    // 检查返回数据是否包含必要的字段
-    if (!data.name || !data.role) {
-      throw new Error('无效的 API 响应')
-    }
-    
-    // 检查用户状态
-    if (data.state !== 'NORMAL') {
-      throw new Error('用户状态异常')
-    }
-    
-    return { ok: true, data }
+    throw new Error(`所有认证端点都失败。最后错误: ${lastError?.message || '未知错误'}`);
   },
 
   /**
