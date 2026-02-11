@@ -1,7 +1,7 @@
 name: Build and Release Extension
 
 on:
-  workflow_dispatch: # 允许手动点击运行
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,10 +13,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18 # 该项目较旧，用 Node 18 比较稳妥
+          node-version: 18
 
       - name: Install dependencies
-        run: npm install # 或者用 yarn install，看你截图里有 yarn.lock
+        # 先安装原有依赖，然后手动补上缺失的 marked 库
+        run: |
+          npm install
+          npm install marked 
 
       - name: Build extension
         run: npm run build
@@ -24,5 +27,5 @@ jobs:
       - name: Upload zip artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Memos-Plugin-v26-Fixed # 下载时的文件名
-          path: dist/ # Vite 打包后的输出目录
+          name: Memos-Plugin-v26-Fixed
+          path: dist/
