@@ -20,7 +20,7 @@
         :options="[
           { value: 'v18', label: '0.18' },
           { value: 'v24', label: '0.24' },
-          { value: 'v25', label: '0.25' }
+          { value: 'v25', label: '0.25' },
           { value: 'v26', label: '0.26' }
         ]"
         :disabled="isLoading"
