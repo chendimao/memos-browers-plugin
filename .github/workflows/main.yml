@@ -1,0 +1,28 @@
+name: Build and Release Extension
+
+on:
+  workflow_dispatch: # 允许手动点击运行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18 # 该项目较旧，用 Node 18 比较稳妥
+
+      - name: Install dependencies
+        run: npm install # 或者用 yarn install，看你截图里有 yarn.lock
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Memos-Plugin-v26-Fixed # 下载时的文件名
+          path: dist/ # Vite 打包后的输出目录
