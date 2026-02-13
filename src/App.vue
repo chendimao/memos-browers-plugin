@@ -569,20 +569,29 @@ const handlePaste = async (event) => {
   const clipboardData = event.clipboardData || event.originalEvent.clipboardData
   const items = clipboardData.items
 
-  // 1. 检查粘贴板里有没有文件（也就是图片）
-  const hasFile = Array.from(items).some(item => item.kind === 'file')
+  // 检查是否有文本内容
+  const hasText = Array.from(items).some(item => item.type === 'text/plain')
   
-  // 2. 如果有图片，我们就把它拦下来，不让它去跑后面那些该死的上传逻辑
-  if (hasFile) {
-    // 检查是否纯粹是图片。如果是，就阻止默认行为（防止出现 undefined 链接）
-    event.preventDefault()
-    console.log('图片粘贴已被本小姐拦截了！')
-    return 
-  }
+  // 收集所有文件
+  const files = []
+  let hasImageFromUrl = false
 
-  // 3. 如果只是文字，这里什么都不写，浏览器会自动处理。
-  // 这样你就能正常粘贴文字，而不会触发任何奇怪的上传了！
-}
+  for (const item of items) {
+    // 处理文件类型
+    if (item.kind === 'file') {
+      const file = item.getAsFile()
+      if (file) {
+        // 如果是截图，重命名文件
+        if (file.name === 'image.png') {
+          const newFile = new File([file], `screenshot-${new Date().getTime()}.png`, {
+            type: file.type
+          })
+          files.push(newFile)
+        } else {
+          files.push(file)
+        }
+      }
+    }
     // 检查是否包含图片URL
     else if (item.type === 'text/plain' && !hasImageFromUrl) {
       try {
