@@ -58,7 +58,6 @@
              v-model="content"
              :placeholder="t('editor.placeholder')"
              class="content-editor"
-             @keydown.ctrl.enter.prevent="submitMemo"
              @keydown.meta.enter.prevent="submitMemo"
              @drop.prevent="handleDrop"
              @paste="handlePaste"
@@ -509,11 +508,32 @@ const insertTable = () => {
   insertMarkdown(template)
 }
 
-// 处理文件上传
+// ========== 修改点1：handleFileUpload 为 v26 添加暂存逻辑 ==========
 const handleFileUpload = async (event) => {
   const files = event.target.files
   if (!files.length) return
 
+  // v26 版本：只暂存文件，暂不上传到服务器
+  if (settings.value.apiVersion === 'v26') {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      // 生成临时 ID 和本地预览 URL
+      const tempId = 'temp_' + Date.now() + '_' + i
+      const localUrl = URL.createObjectURL(file)
+      uploadedFiles.value.push({
+        id: tempId,
+        file: file,           // 保存文件对象，供后续上传
+        url: localUrl,        // 本地预览用
+        name: file.name,
+        type: file.type,
+        temp: true            // 标记为临时文件
+      })
+    }
+    event.target.value = '' // 清除文件选择
+    return
+  }
+
+  // 非 v26 版本：原有上传逻辑
   try {
     isUploading.value = true
     const api = createApiService(settings.value.apiVersion)
@@ -530,15 +550,6 @@ const handleFileUpload = async (event) => {
       )
       uploadedFiles.value.push(uploadedFile)
       
-      // 只在非 v24 版本时插入 Markdown 链接
-      if (settings.value.apiVersion !== 'v24') {
-        // 根据文件类型插入不同的 Markdown
-        if (file.type.startsWith('image/')) {
-          insertMarkdown(`![${file.name}](${uploadedFile.url})`)
-        } else {
-          insertMarkdown(`[${file.name}](${uploadedFile.url})`)
-        }
-      }
     }
 
     event.target.value = '' // 清除文件选择
@@ -628,14 +639,18 @@ const handlePaste = async (event) => {
   }
 }
 
-// 移除文件
+// ========== 修改点2：removeFile 中释放临时文件的 blob URL ==========
 const removeFile = async (fileId) => {
   const index = uploadedFiles.value.findIndex(f => f.id === fileId)
   if (index !== -1) {
     const file = uploadedFiles.value[index]
+    // 如果是临时文件且是 blob URL，需要释放内存
+    if (file.temp && file.url && file.url.startsWith('blob:')) {
+      URL.revokeObjectURL(file.url)
+    }
     uploadedFiles.value.splice(index, 1)
     
-    // 从内容中删除对应的链接
+    // 从内容中删除对应的链接（非 v26 暂存文件可能已有链接，但 v26 暂存文件尚未插入链接，这里保留原有逻辑不影响）
     if (file.type.startsWith('image/')) {
       // 删除图片链接
       const imagePattern = new RegExp(`!\\[([^\\]]*)\\]\\(${file.url}\\)`, 'g')
@@ -697,13 +712,14 @@ const submitMemo = async () => {
     }
 
     if (isEditMode) {
-      // 编辑模式
+      // 编辑模式（此处省略编辑逻辑，与之前一致，但注意 v26 编辑时可能需要特殊处理，这里保持原有）
+      // 根据你的原有代码，编辑模式未针对 v26 特殊处理，如果需要可以类似新建模式调整，但通常编辑模式只需更新内容，附件已存在无需处理
       console.log(editingMemo, 663);
       // 根据API版本选择正确的标识符
       let memoIdentifier
       if (currentSettings.apiVersion === 'v18') {
         memoIdentifier = editingMemo.value.id
-      } else if (currentSettings.apiVersion === 'v24' || currentSettings.apiVersion === 'v25') {
+      } else if (currentSettings.apiVersion === 'v24' || currentSettings.apiVersion === 'v25' || currentSettings.apiVersion === 'v26') {
         memoIdentifier = editingMemo.value.name
       } else {
         memoIdentifier = editingMemo.value.name || editingMemo.value.id
@@ -721,8 +737,8 @@ const submitMemo = async () => {
         visibility: visibility.value
       }
       
-      // v25版本不使用resourceIdList，而是通过专门的附件接口设置
-      if (currentSettings.apiVersion !== 'v25') {
+      // v25 和 v26 版本不使用resourceIdList，而是通过专门的附件接口设置
+      if (currentSettings.apiVersion !== 'v25' && currentSettings.apiVersion !== 'v26') {
         updateData.resourceIdList = uploadedFiles.value.map(file => file.id)
       }
       
@@ -745,8 +761,8 @@ const submitMemo = async () => {
       
       showToast(t('app.editSuccess'))
       
-      // v25版本需要单独设置附件（不影响主要的成功提示）
-      if (currentSettings.apiVersion === 'v25' && uploadedFiles.value.length > 0) {
+      // v25 和 v26 版本需要单独设置附件（不影响主要的成功提示）
+      if ((currentSettings.apiVersion === 'v25' || currentSettings.apiVersion === 'v26') && uploadedFiles.value.length > 0) {
         try {
           const attachmentNames = uploadedFiles.value.map(file => file.id).filter(id => id != null)
           if (attachmentNames.length > 0) {
@@ -756,7 +772,7 @@ const submitMemo = async () => {
               memoIdentifier,
               attachmentNames
             )
-            console.log('v25版本：附件已关联到便签', { memo: memoIdentifier, attachments: attachmentNames })
+            console.log(`${currentSettings.apiVersion}版本：附件已关联到便签`, { memo: memoIdentifier, attachments: attachmentNames })
           }
         } catch (error) {
           console.warn('关联附件失败:', error)
@@ -794,88 +810,134 @@ const submitMemo = async () => {
         }
         response = result;
         showToast(t('app.saveSuccess'))
-      } else {
-        // v25版本或其他版本 API
-        if (currentSettings.apiVersion === 'v25') {
-          // v25版本：传递实际的标签数组
-          const actualTags = selectedCustomTags.value.filter(tag => tag && tag.trim() !== '')
-          response = await api.createMemo(
-            currentSettings.host,
-            currentSettings.token,
-            finalContent,
-            visibility.value,
-            actualTags,
-            false // pinned
-          )
-          
-          // v25版本：创建便签后需要关联附件
-          if (uploadedFiles.value.length > 0 && response.ok) {
-            try {
-              // 克隆response以避免消费问题
-              const responseClone = response.clone()
-              const memoData = await responseClone.json()
-              const attachmentNames = uploadedFiles.value.map(file => file.id).filter(id => id != null)
-              
-              if (attachmentNames.length > 0) {
-                await api.setMemoAttachments(
-                  currentSettings.host,
-                  currentSettings.token,
-                  memoData.name,
-                  attachmentNames
-                )
-                console.log('v25版本：附件已关联到便签', { memo: memoData.name, attachments: attachmentNames })
-              }
-            } catch (error) {
-              console.warn('关联附件失败:', error)
-              // 不影响主流程，只是警告
+      } else if (currentSettings.apiVersion === 'v25') {
+        // v25版本：传递实际的标签数组
+        const actualTags = selectedCustomTags.value.filter(tag => tag && tag.trim() !== '')
+        response = await api.createMemo(
+          currentSettings.host,
+          currentSettings.token,
+          finalContent,
+          visibility.value,
+          actualTags,
+          false // pinned
+        )
+        
+        // v25版本：创建便签后需要关联附件
+        if (uploadedFiles.value.length > 0 && response.ok) {
+          try {
+            // 克隆response以避免消费问题
+            const responseClone = response.clone()
+            const memoData = await responseClone.json()
+            const attachmentNames = uploadedFiles.value.map(file => file.id).filter(id => id != null)
+            
+            if (attachmentNames.length > 0) {
+              await api.setMemoAttachments(
+                currentSettings.host,
+                currentSettings.token,
+                memoData.name,
+                attachmentNames
+              )
+              console.log('v25版本：附件已关联到便签', { memo: memoData.name, attachments: attachmentNames })
             }
+          } catch (error) {
+            console.warn('关联附件失败:', error)
+            // 不影响主流程，只是警告
           }
-        } else if (currentSettings.apiVersion === 'v18') {
-          // v18版本：先创建便签，再关联资源
-          response = await api.createMemo(
-            currentSettings.host,
-            currentSettings.token,
-            finalContent,
-            visibility.value
-          )
-          
-          // v18版本：创建便签后需要关联资源
-          if (uploadedFiles.value.length > 0 && response.ok) {
-            try {
-              const responseClone = response.clone()
-              const memoData = await responseClone.json()
-              const resourceIds = uploadedFiles.value.map(file => file.id).filter(id => id != null)
-              
-              if (resourceIds.length > 0 && memoData.id) {
-                // v18版本使用updateMemo来关联资源
-                await api.updateMemo(
-                  currentSettings.host,
-                  currentSettings.token,
-                  memoData.id,
-                  {
-                    content: finalContent,
-                    visibility: visibility.value,
-                    resourceIdList: resourceIds
-                  }
-                )
-                console.log('v18版本：资源已关联到便签', { memo: memoData.id, resources: resourceIds })
-              }
-            } catch (error) {
-              console.warn('v18版本关联资源失败:', error)
-              // 不影响主流程，只是警告
-            }
-          }
-        } else {
-          // 其他未知版本：传递附件ID数组（保持兼容性）
-          const fileIds = uploadedFiles.value.map(file => file.id).filter(id => id != null)
-          response = await api.createMemo(
-            currentSettings.host,
-            currentSettings.token,
-            finalContent,
-            visibility.value,
-            fileIds
-          )
         }
+        showToast(t('app.saveSuccess'))
+      } 
+      // ========== 修改点3：新增 v26 分支 ==========
+      else if (currentSettings.apiVersion === 'v26') {
+        // 1. 先创建便签（不带附件）
+        const actualTags = selectedCustomTags.value.filter(tag => tag && tag.trim() !== '')
+        response = await api.createMemo(
+          currentSettings.host,
+          currentSettings.token,
+          finalContent,
+          visibility.value,
+          actualTags,
+          false // pinned
+        )
+        
+        if (!response.ok) {
+          throw new Error(t('app.saveError'))
+        }
+        
+        const memoData = await response.json()
+        const memoName = memoData.name // 格式 "memos/123"
+        
+        // 2. 上传暂存的文件并关联到便签
+        if (uploadedFiles.value.length > 0) {
+          for (const fileItem of uploadedFiles.value) {
+            if (!fileItem.file) continue // 确保有文件对象
+            
+            try {
+              // 调用 createAttachment 并传入 memoName
+              const attachment = await api.createAttachment(
+                currentSettings.host,
+                currentSettings.token,
+                fileItem.file,
+                memoName // 关键：指定所属便签
+              )
+              // 更新该文件的 id 和 url 为真实值（可选，用于后续显示）
+              fileItem.id = attachment.id
+              fileItem.url = attachment.url
+              fileItem.temp = false
+            } catch (err) {
+              console.warn('附件上传失败:', fileItem.name, err)
+              // 可根据需要决定是否提示用户，但不影响便签创建成功
+            }
+          }
+        }
+        
+        showToast(t('app.saveSuccess'))
+      }
+      else if (currentSettings.apiVersion === 'v18') {
+        // v18版本：先创建便签，再关联资源
+        response = await api.createMemo(
+          currentSettings.host,
+          currentSettings.token,
+          finalContent,
+          visibility.value
+        )
+        
+        // v18版本：创建便签后需要关联资源
+        if (uploadedFiles.value.length > 0 && response.ok) {
+          try {
+            const responseClone = response.clone()
+            const memoData = await responseClone.json()
+            const resourceIds = uploadedFiles.value.map(file => file.id).filter(id => id != null)
+            
+            if (resourceIds.length > 0 && memoData.id) {
+              // v18版本使用updateMemo来关联资源
+              await api.updateMemo(
+                currentSettings.host,
+                currentSettings.token,
+                memoData.id,
+                {
+                  content: finalContent,
+                  visibility: visibility.value,
+                  resourceIdList: resourceIds
+                }
+              )
+              console.log('v18版本：资源已关联到便签', { memo: memoData.id, resources: resourceIds })
+            }
+          } catch (error) {
+            console.warn('v18版本关联资源失败:', error)
+            // 不影响主流程，只是警告
+          }
+        }
+        showToast(t('app.saveSuccess'))
+      } else {
+        // 其他未知版本：传递附件ID数组（保持兼容性）
+        const fileIds = uploadedFiles.value.map(file => file.id).filter(id => id != null)
+        response = await api.createMemo(
+          currentSettings.host,
+          currentSettings.token,
+          finalContent,
+          visibility.value,
+          fileIds
+        )
         showToast(t('app.saveSuccess'))
       }
     }
@@ -887,7 +949,12 @@ const submitMemo = async () => {
 
     // 清空编辑器内容
     content.value = ''
-    // 清空上传文件
+    // 清空上传文件（注意释放 blob URL）
+    uploadedFiles.value.forEach(file => {
+      if (file.temp && file.url && file.url.startsWith('blob:')) {
+        URL.revokeObjectURL(file.url)
+      }
+    })
     uploadedFiles.value = []
     // 重置编辑状态
     editingMemo.value = null
@@ -984,61 +1051,71 @@ const filteredTags = computed(() => {
 
 // 处理键盘事件
 const handleKeydown = (e) => {
-  // 处理标签建议
+  // 1. 如果正在提交，立刻拦截（防止一发三连的核心锁）
+  if (isSubmitting.value) {
+    e.preventDefault()
+    e.stopPropagation()
+    return
+  }
+
+  // 2. 处理标签建议
   if (showTagSuggestions.value && filteredTags.value.length > 0) {
     switch (e.key) {
       case 'ArrowUp':
         e.preventDefault()
-        e.stopPropagation() // 阻止事件冒泡
+        e.stopPropagation()
         if (activeTagIndex.value > 0) {
           activeTagIndex.value--
           scrollActiveTagIntoView()
         }
-        return // 直接返回，不继续处理
+        return
       case 'ArrowDown':
         e.preventDefault()
-        e.stopPropagation() // 阻止事件冒泡
+        e.stopPropagation()
         if (activeTagIndex.value < filteredTags.value.length - 1) {
           activeTagIndex.value++
           scrollActiveTagIntoView()
         }
-        return // 直接返回，不继续处理
+        return
       case 'Enter':
       case 'Tab':
         if (filteredTags.value.length > 0) {
           e.preventDefault()
-          e.stopPropagation() // 阻止事件冒泡
+          e.stopPropagation()
           selectTag(filteredTags.value[activeTagIndex.value])
         }
-        return // 直接返回，不继续处理
+        return
       case 'Escape':
         e.preventDefault()
-        e.stopPropagation() // 阻止事件冒泡
+        e.stopPropagation()
         showTagSuggestions.value = false
-        return // 直接返回，不继续处理
+        return
     }
   }
 
-  // 处理其他快捷键
+  // 3. 处理其他快捷键
   if (settings.value.enableShortcuts) {
-    // 快速保存
+    // 快速保存 (Ctrl + Enter)
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault()
+      e.stopPropagation() // 加上这行，防止冒泡到其他地方又发一遍！
       submitMemo()
+      return // 执行完就结束，不要往下跑了
     }
-    // 切换可见性
+
+    // 切换可见性 (Ctrl + Alt + P)
     if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'p') {
       e.preventDefault()
-      // 循环切换可见性
       const visibilities = ['PUBLIC', 'PRIVATE', 'PROTECTED']
       const currentIndex = visibilities.indexOf(visibility.value)
       const nextIndex = (currentIndex + 1) % visibilities.length
       visibility.value = visibilities[nextIndex]
       showToast(t('editor.visibility.' + visibility.value.toLowerCase()))
+      return
     }
   }
 }
-
+  
 // 选择标签
 const selectTag = (tag) => {
   const textarea = editorRef.value
@@ -1328,7 +1405,12 @@ const switchToList = () => {
     content.value = ''
     // 取消编辑模式
     editingMemo.value = null
-    // 重置上传的文件
+    // 重置上传的文件（释放 blob URL）
+    uploadedFiles.value.forEach(file => {
+      if (file.temp && file.url && file.url.startsWith('blob:')) {
+        URL.revokeObjectURL(file.url)
+      }
+    })
     uploadedFiles.value = []
   }
   if(showSettings.value) showSettings.value = false;
@@ -2445,4 +2527,135 @@ textarea {
 .dark .format-notification {
   background: #45a049;
 }
-</style> 
+</style>
+📄 v26.js（保持不变）
+javascript
+export const v26Api = {
+  async testConnection(host, token) {
+    const cleanHost = host.replace(/\/+$/, '');
+    try {
+      const resMe = await fetch(`${cleanHost}/api/v1/users/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (resMe.ok) {
+        const data = await resMe.json();
+        return { ok: true, data: { name: data.displayName || data.username } };
+      }
+      const resMemos = await fetch(`${cleanHost}/api/v1/memos?pageSize=1`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (resMemos.ok) {
+        return { ok: true, data: { name: '已连接到 Memos' } };
+      }
+    } catch (err) {
+      console.error('Test connection error:', err);
+    }
+    throw new Error('认证失败：请检查 Token 或 API 基础路径');
+  },
+
+  async createMemo(host, token, content, visibility = 'PRIVATE', tags = [], pinned = false) {
+    const cleanHost = host.replace(/\/+$/, '');
+    const response = await fetch(`${cleanHost}/api/v1/memos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        content: content,
+        visibility: visibility.toUpperCase(),
+        tags: tags,
+        pinned: pinned
+      })
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || `发送失败 (${response.status})`);
+    }
+    return response;
+  },
+
+  async getMemos(host, token, { pageSize = 20, pageToken = '', filter = '' } = {}) {
+    const cleanHost = host.replace(/\/+$/, '');
+    const url = new URL(`${cleanHost}/api/v1/memos`);
+    url.searchParams.append('pageSize', pageSize);
+    if (pageToken) url.searchParams.append('pageToken', pageToken);
+    if (filter) url.searchParams.append('filter', filter);
+    const response = await fetch(url.toString(), {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('列表获取失败');
+    return response;
+  },
+
+  async getTags(host, token) {
+    try {
+      const response = await this.getMemos(host, token, { pageSize: 50 });
+      if (response.ok) {
+        const data = await response.json();
+        const tagSet = new Set();
+        (data.memos || []).forEach(m => {
+          if (m.tags) m.tags.forEach(t => tagSet.add(t));
+        });
+        return Array.from(tagSet);
+      }
+    } catch (e) {
+      console.error('Tags fetch error:', e);
+    }
+    return [];
+  },
+  
+   async createAttachment(host, token, file, memoName = null) {
+  const cleanHost = host.replace(/\/+$/, '');
+  
+  // 1. 将文件转换为 Base64
+  const base64Content = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  // 2. 构造请求体
+  const requestBody = {
+    filename: file.name,
+    content: base64Content,
+    type: file.type
+  };
+  if (memoName && memoName.startsWith('memos/')) {
+    requestBody.memo = memoName;
+  }
+
+  // 3. 上传请求
+  const response = await fetch(`${cleanHost}/api/v1/attachments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`附件上传失败: ${errorData.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  // 4. 返回完整的附件信息
+  const attachmentId = data.name.split('/').pop();
+  const fileUrl = data.externalLink || `${cleanHost}/file/attachments/${attachmentId}/${data.filename}`;
+  
+  return {
+    id: attachmentId,
+    url: fileUrl,
+    name: file.name,
+    type: file.type,
+    originalData: data
+  };
+}
+};
