@@ -1,6 +1,7 @@
 import { v18Api } from './v18'
 import { v24Api } from './v24'
 import { v25Api } from './v25'
+import { v26Api } from './v26'
 
 /**
  * API 服务工厂
@@ -11,7 +12,8 @@ export const createApiService = (version) => {
   const apiMap = {
     v18: v18Api,
     v24: v24Api,
-    v25: v25Api
+    v25: v25Api,
+    v26: v26Api
   }
 
   if (!apiMap[version]) {
@@ -29,7 +31,8 @@ export const getSupportedVersions = () => {
   return Object.keys({
     v18: '0.18',
     v24: '0.24',
-    v25: '0.25'
+    v25: '0.25',
+    v26: '0.26'
   })
 }
 
@@ -42,7 +45,8 @@ export const getVersionDisplayName = (version) => {
   const versionMap = {
     v18: '0.18',
     v24: '0.24',
-    v25: '0.25'
+    v25: '0.25',
+    v26: '0.26'
   }
   return versionMap[version] || version
 }
