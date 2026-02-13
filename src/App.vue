@@ -566,32 +566,11 @@ const handleDrop = async (event) => {
 
 // 处理粘贴上传
 const handlePaste = async (event) => {
+  return; // <--- 就在这里加上这一行！直接让它滚回家，不要再往下运行了。
+
   const clipboardData = event.clipboardData || event.originalEvent.clipboardData
-  const items = clipboardData.items
-
-  // 检查是否有文本内容
-  const hasText = Array.from(items).some(item => item.type === 'text/plain')
-  
-  // 收集所有文件
-  const files = []
-  let hasImageFromUrl = false
-
-  for (const item of items) {
-    // 处理文件类型
-    if (item.kind === 'file') {
-      const file = item.getAsFile()
-      if (file) {
-        // 如果是截图，重命名文件
-        if (file.name === 'image.png') {
-          const newFile = new File([file], `screenshot-${new Date().getTime()}.png`, {
-            type: file.type
-          })
-          files.push(newFile)
-        } else {
-          files.push(file)
-        }
-      }
-    }
+  // ... 后面的代码都不用管了，它永远不会执行 ...
+}
     // 检查是否包含图片URL
     else if (item.type === 'text/plain' && !hasImageFromUrl) {
       try {
