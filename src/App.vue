@@ -530,15 +530,6 @@ const handleFileUpload = async (event) => {
       )
       uploadedFiles.value.push(uploadedFile)
       
-      // 只在非 v24 版本时插入 Markdown 链接
-      if (settings.value.apiVersion !== 'v24') {
-        // 根据文件类型插入不同的 Markdown
-        if (file.type.startsWith('image/')) {
-          insertMarkdown(`![${file.name}](${uploadedFile.url})`)
-        } else {
-          insertMarkdown(`[${file.name}](${uploadedFile.url})`)
-        }
-      }
     }
 
     event.target.value = '' // 清除文件选择
