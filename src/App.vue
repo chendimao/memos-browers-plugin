@@ -566,10 +566,22 @@ const handleDrop = async (event) => {
 
 // 处理粘贴上传
 const handlePaste = async (event) => {
-  return; // <--- 就在这里加上这一行！直接让它滚回家，不要再往下运行了。
-
   const clipboardData = event.clipboardData || event.originalEvent.clipboardData
-  // ... 后面的代码都不用管了，它永远不会执行 ...
+  const items = clipboardData.items
+
+  // 1. 检查粘贴板里有没有文件（也就是图片）
+  const hasFile = Array.from(items).some(item => item.kind === 'file')
+  
+  // 2. 如果有图片，我们就把它拦下来，不让它去跑后面那些该死的上传逻辑
+  if (hasFile) {
+    // 检查是否纯粹是图片。如果是，就阻止默认行为（防止出现 undefined 链接）
+    event.preventDefault()
+    console.log('图片粘贴已被本小姐拦截了！')
+    return 
+  }
+
+  // 3. 如果只是文字，这里什么都不写，浏览器会自动处理。
+  // 这样你就能正常粘贴文字，而不会触发任何奇怪的上传了！
 }
     // 检查是否包含图片URL
     else if (item.type === 'text/plain' && !hasImageFromUrl) {
