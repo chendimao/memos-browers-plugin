@@ -26,4 +26,4 @@ dist-ssr
 # vitepress build output cache
 docs/.vitepress/cache
 docs/.vitepress/dist
-
+.worktrees
