@@ -111,7 +111,7 @@
             </div>
             
             <!-- 资源列表展示 -->
-            <div v-if="(settings.apiVersion === 'v24' || settings.apiVersion === 'v25') && memo.resources && memo.resources.length > 0" class="resources-container">
+            <div v-if="(settings.apiVersion === 'v24' || settings.apiVersion === 'v25' || settings.apiVersion === 'v26') && memo.resources && memo.resources.length > 0" class="resources-container">
               <div class="resources-list">
                 <!-- 图片资源 -->
                 <div v-for="resource in memo.resources.filter(r => r.type.startsWith('image/'))" 
@@ -297,40 +297,43 @@ const fetchMemos = async () => {
           memo.resources = resources.resources;
         }
       }
-    } else if (props.settings.apiVersion === 'v25') {
-      // v25版本数据处理
-      nextPageToken.value = data.nextPageToken;
-      data = data.memos;
+    } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
+      // v25/v26 版本数据处理
+      nextPageToken.value = data.nextPageToken || data.next_page_token || ''
+      data = data.memos || []
       
-      // v25版本字段映射和处理
+      // v25/v26 字段映射和处理
       for (const memo of data) {
         // 确保时间字段兼容性
         if (memo.createTime && !memo.createdTs) {
-          memo.createdTs = new Date(memo.createTime).getTime();
+          memo.createdTs = new Date(memo.createTime).getTime()
         }
         if (memo.displayTime && !memo.displayTs) {
-          memo.displayTs = new Date(memo.displayTime).getTime();
+          memo.displayTs = new Date(memo.displayTime).getTime()
         }
         if (memo.updateTime && !memo.updatedTs) {
-          memo.updatedTs = new Date(memo.updateTime).getTime();
+          memo.updatedTs = new Date(memo.updateTime).getTime()
         }
         
         // 处理附件
         if (memo.attachments && memo.attachments.length > 0) {
           try {
-            const attachments = await api.listMemoAttachments(props.settings.host, props.settings.token, memo.name);
+            const attachments = await api.listMemoAttachments(props.settings.host, props.settings.token, memo.name)
             if (attachments && attachments.attachments) {
-              memo.resources = attachments.attachments;
+              memo.resources = attachments.attachments
+            } else {
+              memo.resources = memo.attachments
             }
           } catch (error) {
-            console.warn('获取附件失败:', error);
+            console.warn('获取附件失败:', error)
+            memo.resources = memo.attachments
           }
         }
       }
     }
     
-    // 客户端标签过滤（v25版本的临时解决方案）
-    if (props.settings.apiVersion === 'v25' && selectedTag.value) {
+    // 客户端标签过滤（v25/v26）
+    if ((props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') && selectedTag.value) {
       data = data.filter(memo => {
         return memo.tags && memo.tags.includes(selectedTag.value)
       })
@@ -338,18 +341,18 @@ const fetchMemos = async () => {
     }
     
     // 检查是否还有更多数据
-    if (props.settings.apiVersion === 'v25') {
-      // v25版本：如果返回的数据量等于limit，假设还有更多数据
+    if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
+      // v25/v26：如果返回的数据量等于 limit，假设还有更多数据
       if (data.length >= limit) {
         hasMore.value = true
-        console.log('fetchMemos保持hasMore为true (v25版本，数据量达到limit):', {
+        console.log('fetchMemos保持hasMore为true (v25/v26，数据量达到limit):', {
           dataLength: data.length,
           limit,
           nextPageToken: nextPageToken.value
         })
       } else {
         hasMore.value = false
-        console.log('fetchMemos设置hasMore为false (v25版本，数据量不足):', {
+        console.log('fetchMemos设置hasMore为false (v25/v26，数据量不足):', {
           dataLength: data.length,
           limit,
           nextPageToken: nextPageToken.value
@@ -408,7 +411,7 @@ const getMemoIdentifier = (memo) => {
     identifier = memo.id
   } else if (props.settings.apiVersion === 'v24') {
     identifier = memo.name
-  } else if (props.settings.apiVersion === 'v25') {
+  } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
     identifier = memo.name
   } else {
     // 默认尝试使用name，如果没有则使用id
@@ -542,40 +545,43 @@ const loadMore = async () => {
           memo.resources = resources.resources;
         }
       }
-    } else if (props.settings.apiVersion === 'v25') {
-      // v25版本数据处理
-      nextPageToken.value = data.nextPageToken;
-      data = data.memos;
+    } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
+      // v25/v26 版本数据处理
+      nextPageToken.value = data.nextPageToken || data.next_page_token || ''
+      data = data.memos || []
       
-      // v25版本字段映射和处理
+      // v25/v26 字段映射和处理
       for (const memo of data) {
         // 确保时间字段兼容性
         if (memo.createTime && !memo.createdTs) {
-          memo.createdTs = new Date(memo.createTime).getTime();
+          memo.createdTs = new Date(memo.createTime).getTime()
         }
         if (memo.displayTime && !memo.displayTs) {
-          memo.displayTs = new Date(memo.displayTime).getTime();
+          memo.displayTs = new Date(memo.displayTime).getTime()
         }
         if (memo.updateTime && !memo.updatedTs) {
-          memo.updatedTs = new Date(memo.updateTime).getTime();
+          memo.updatedTs = new Date(memo.updateTime).getTime()
         }
         
         // 处理附件
         if (memo.attachments && memo.attachments.length > 0) {
           try {
-            const attachments = await api.listMemoAttachments(props.settings.host, props.settings.token, memo.name);
+            const attachments = await api.listMemoAttachments(props.settings.host, props.settings.token, memo.name)
             if (attachments && attachments.attachments) {
-              memo.resources = attachments.attachments;
+              memo.resources = attachments.attachments
+            } else {
+              memo.resources = memo.attachments
             }
           } catch (error) {
-            console.warn('获取附件失败:', error);
+            console.warn('获取附件失败:', error)
+            memo.resources = memo.attachments
           }
         }
       }
     }
 
-    // 客户端标签过滤（v25版本的临时解决方案）
-    if (props.settings.apiVersion === 'v25' && selectedTag.value) {
+    // 客户端标签过滤（v25/v26）
+    if ((props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') && selectedTag.value) {
       data = data.filter(memo => {
         return memo.tags && memo.tags.includes(selectedTag.value)
       })
@@ -583,18 +589,18 @@ const loadMore = async () => {
     }
 
     // 根据版本和数据量判断是否还有更多数据
-    if (props.settings.apiVersion === 'v25') {
-      // v25版本：如果返回的数据量等于limit，假设还有更多数据
+    if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
+      // v25/v26：如果返回的数据量等于limit，假设还有更多数据
       if (data.length >= limit) {
         hasMore.value = true
-        console.log('loadMore保持hasMore为true (v25版本，数据量达到limit):', {
+        console.log('loadMore保持hasMore为true (v25/v26，数据量达到limit):', {
           dataLength: data.length,
           limit,
           nextPageToken: nextPageToken.value
         })
       } else {
         hasMore.value = false
-        console.log('loadMore设置hasMore为false (v25版本，数据量不足):', {
+        console.log('loadMore设置hasMore为false (v25/v26，数据量不足):', {
           dataLength: data.length,
           limit,
           nextPageToken: nextPageToken.value
