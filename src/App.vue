@@ -4,6 +4,7 @@
       <h1>{{ t('app.title') }}</h1>
       <div class="header-actions">
         <button 
+          v-if="isConfigured"
           class="view-switch-btn" 
           @click="currentView === 'editor' ? switchToList() : switchToEditor()"
           :title="currentView === 'editor' ? t('app.switchToList') : t('app.switchToEditor')"
@@ -237,6 +238,17 @@ const settings = useStorage('memos-settings', {
   preserveFormatting: true // 新增：右键添加时是否保留样式格式
 })
 
+const hasValue = (value) => typeof value === 'string' && value.trim() !== ''
+const isConfigured = computed(() => hasValue(settings.value.host) && hasValue(settings.value.token))
+
+const ensureConfiguredOrOpenSettings = () => {
+  if (isConfigured.value) {
+    return true
+  }
+  showSettings.value = true
+  return false
+}
+
 // 文件上传相关状态
 const uploadedFiles = ref([])
 const isUploading = ref(false)
@@ -338,7 +350,7 @@ const handleSettingsSaved = async () => {
   await fetchRemoteTags()
 
   // 更新视图
-  if (settings.value.defaultView) {
+  if (isConfigured.value && settings.value.defaultView) {
     currentView.value = settings.value.defaultView
   }
 
@@ -348,12 +360,12 @@ const handleSettingsSaved = async () => {
   })
 
   // 关闭设置面板
-  showSettings.value = false
+  showSettings.value = !isConfigured.value
 }
 
 // 获取远程标签列表
 const fetchRemoteTags = async () => {
-  if (!settings.value.host || !settings.value.token) return
+  if (!isConfigured.value) return
 
   try {
     const api = createApiService(settings.value.apiVersion)
@@ -470,10 +482,22 @@ onMounted(() => {
 
 // 监听设置变化
 watch(() => settings.value, (newSettings) => {
-  if (newSettings.host && newSettings.token) {
+  if (hasValue(newSettings.host) && hasValue(newSettings.token)) {
     fetchRemoteTags()
   }
 }, { deep: true })
+
+watch(isConfigured, (configured) => {
+  if (!configured) {
+    showSettings.value = true
+  }
+}, { immediate: true })
+
+watch(() => showSettings.value, (newValue) => {
+  if (!isConfigured.value && !newValue) {
+    showSettings.value = true
+  }
+})
 
 // 监听设置变化
 watch(() => settings.value.enableShortcuts, (newVal) => {
@@ -1383,12 +1407,14 @@ const formatContent = (text, url, title) => {
 
 // 切换视图
 const switchView = () => {
+  if (!ensureConfiguredOrOpenSettings()) return
   if(showSettings.value) showSettings.value = false;
   currentView.value = currentView.value === 'editor' ? 'list' : 'editor'
 }
 
 // 切换到编辑器
 const switchToEditor = () => {
+  if (!ensureConfiguredOrOpenSettings()) return
   if(showSettings.value) showSettings.value = false;
   currentView.value = 'editor'
   // 等待视图切换完成后再计算高度
@@ -1399,6 +1425,7 @@ const switchToEditor = () => {
 
 // 切换到列表视图
 const switchToList = () => {
+  if (!ensureConfiguredOrOpenSettings()) return
   // 如果是从编辑器切换到列表
   if (currentView.value === 'editor') {
     // 清空编辑器内容
@@ -1419,6 +1446,7 @@ const switchToList = () => {
 
 // 处理编辑备忘录
 const handleEditMemo = (memo) => {
+  if (!ensureConfiguredOrOpenSettings()) return
   editingMemo.value = memo
   content.value = memo.content
   currentVisibility.value = memo.visibility
