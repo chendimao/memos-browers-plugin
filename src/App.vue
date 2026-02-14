@@ -11,6 +11,14 @@
         >
           <i :class="currentView === 'editor' ? 'fas fa-list' : 'fas fa-edit'"></i>
         </button>
+        <button
+          v-if="isConfigured && settings.lockEnabled"
+          class="lock-toggle-btn"
+          @click="handleLockButtonClick"
+          :title="isLocked ? t('lock.unlockAction') : t('lock.lockAction')"
+        >
+          <i :class="isLocked ? 'fas fa-lock' : 'fas fa-lock-open'"></i>
+        </button>
         <div class="settings-icon" @click="openSettings">
           <i class="fas fa-cog"></i>
         </div>
@@ -173,6 +181,7 @@
   <template v-else>
          <div class="list-view">
            <MemosList
+             v-if="!isLocked"
              :settings="settings"
              @switchToEditor="switchToEditor"
              @editMemo="handleEditMemo"
@@ -180,6 +189,43 @@
          </div>
        </template>
     </template>
+
+    <div v-if="showLockActionModal" class="lock-modal-mask">
+      <div class="lock-modal">
+        <h3>{{ lockAction === 'lock' ? t('lock.lockConfirmTitle') : t('lock.unlockTitle') }}</h3>
+        <input
+          v-model="lockActionForm.password"
+          type="password"
+          :placeholder="t('lock.passwordPlaceholder')"
+        >
+        <input
+          v-if="lockAction === 'lock'"
+          v-model="lockActionForm.confirmPassword"
+          type="password"
+          :placeholder="t('lock.confirmPasswordPlaceholder')"
+        >
+        <div class="lock-modal-actions">
+          <button class="lock-secondary-btn" @click="closeLockActionModal">{{ t('cancel') }}</button>
+          <button class="lock-primary-btn" @click="submitLockAction">
+            {{ lockAction === 'lock' ? t('lock.lockAction') : t('lock.unlockAction') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="isLocked" class="lock-screen-overlay">
+      <div class="lock-screen-card">
+        <h3>{{ t('lock.pageLocked') }}</h3>
+        <input
+          v-model="unlockForm.password"
+          type="password"
+          :placeholder="t('lock.passwordPlaceholder')"
+          @keydown.enter.prevent="unlockFromOverlay"
+        >
+        <button class="submit-btn" @click="unlockFromOverlay">{{ t('lock.unlockAction') }}</button>
+        <p class="lock-shortcut-hint">{{ t('lock.shortcutHint') }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -192,6 +238,7 @@ import { showToast } from './utils/toast'
 import TagSelector from './components/TagSelector.vue'
 import CustomSelect from './components/CustomSelect.vue'
 import MemosList from './views/MemosList.vue'
+import { verifyPassword } from './utils/lock.js'
 import { t } from './i18n'
 
 // 定义 emit
@@ -210,6 +257,15 @@ const editingMemo = ref(null)
 const currentVisibility = ref('PUBLIC')
 const isSubmitting = ref(false)
 const formatPreservedNotification = ref(false)
+const showLockActionModal = ref(false)
+const lockAction = ref<'lock' | 'unlock'>('lock')
+const lockActionForm = ref({
+  password: '',
+  confirmPassword: ''
+})
+const unlockForm = ref({
+  password: ''
+})
 
 // 使用 useStorage 管理设置
 const settings = useStorage('memos-settings', {
@@ -235,8 +291,12 @@ const settings = useStorage('memos-settings', {
   enablePreview: true,
   theme: 'light',
   defaultView: 'editor',
-  preserveFormatting: true // 新增：右键添加时是否保留样式格式
+  preserveFormatting: true, // 新增：右键添加时是否保留样式格式
+  lockEnabled: false,
+  lockPasswordHash: ''
 })
+const persistedLockState = useStorage('memos-lock-state', false)
+const isLocked = ref(Boolean(persistedLockState.value))
 
 const hasValue = (value) => typeof value === 'string' && value.trim() !== ''
 const isConfigured = computed(() => hasValue(settings.value.host) && hasValue(settings.value.token))
@@ -247,6 +307,117 @@ const ensureConfiguredOrOpenSettings = () => {
   }
   showSettings.value = true
   return false
+}
+
+const ensureUnlocked = () => {
+  if (!isLocked.value) {
+    return true
+  }
+  showToast(t('lock.unlockFirst'), 'warning')
+  return false
+}
+
+const resetLockActionForm = () => {
+  lockActionForm.value.password = ''
+  lockActionForm.value.confirmPassword = ''
+}
+
+const resetUnlockForm = () => {
+  unlockForm.value.password = ''
+}
+
+const validatePasswordPair = (password: string, confirmPassword: string) => {
+  if (!password || !confirmPassword) {
+    showToast(t('lock.passwordRequired'), 'error')
+    return ''
+  }
+  if (password !== confirmPassword) {
+    showToast(t('lock.passwordMismatch'), 'error')
+    return ''
+  }
+  return password
+}
+
+const validateSinglePassword = (password: string) => {
+  if (!password) {
+    showToast(t('lock.passwordRequiredSingle'), 'error')
+    return ''
+  }
+  return password
+}
+
+const openLockActionModal = (action: 'lock' | 'unlock') => {
+  if (!settings.value.lockEnabled) {
+    return
+  }
+  if (!settings.value.lockPasswordHash) {
+    showToast(t('lock.needSetPassword'), 'error')
+    return
+  }
+  lockAction.value = action
+  resetLockActionForm()
+  showLockActionModal.value = true
+}
+
+const closeLockActionModal = () => {
+  showLockActionModal.value = false
+  resetLockActionForm()
+}
+
+const submitLockAction = async () => {
+  const password = lockAction.value === 'lock'
+    ? validatePasswordPair(lockActionForm.value.password, lockActionForm.value.confirmPassword)
+    : validateSinglePassword(lockActionForm.value.password)
+  if (!password) {
+    return
+  }
+
+  try {
+    const verified = await verifyPassword(password, settings.value.lockPasswordHash || '')
+    if (!verified) {
+      showToast(t('lock.passwordWrong'), 'error')
+      return
+    }
+
+    if (lockAction.value === 'lock') {
+      isLocked.value = true
+      resetUnlockForm()
+      showToast(t('lock.lockSuccess'))
+    } else {
+      isLocked.value = false
+      resetUnlockForm()
+      showToast(t('lock.unlockSuccess'))
+    }
+    closeLockActionModal()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : t('error')
+    showToast(errorMessage, 'error')
+  }
+}
+
+const unlockFromOverlay = async () => {
+  const password = validateSinglePassword(unlockForm.value.password)
+  if (!password) {
+    return
+  }
+
+  try {
+    const verified = await verifyPassword(password, settings.value.lockPasswordHash || '')
+    if (!verified) {
+      showToast(t('lock.passwordWrong'), 'error')
+      return
+    }
+    isLocked.value = false
+    resetUnlockForm()
+    showToast(t('lock.unlockSuccess'))
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : t('error')
+    showToast(errorMessage, 'error')
+  }
+}
+
+const handleLockButtonClick = () => {
+  openLockActionModal(isLocked.value ? 'unlock' : 'lock')
 }
 
 // 文件上传相关状态
@@ -332,6 +503,7 @@ const tagSuggestionsPosition = ref({
 
 // 方法
 const openSettings = () => {
+  if (!ensureUnlocked()) return
   showSettings.value = true
 }
 
@@ -507,6 +679,24 @@ watch(() => settings.value.enableShortcuts, (newVal) => {
     document.removeEventListener('keydown', handleKeydown, { capture: true })
   }
 })
+
+watch(
+  () => [settings.value.lockEnabled, settings.value.lockPasswordHash],
+  ([lockEnabled, lockPasswordHash]) => {
+    if (!lockEnabled || !lockPasswordHash) {
+      isLocked.value = false
+      persistedLockState.value = false
+      showLockActionModal.value = false
+      resetLockActionForm()
+      resetUnlockForm()
+    }
+  },
+  { immediate: true }
+)
+
+watch(isLocked, (locked) => {
+  persistedLockState.value = locked
+}, { immediate: true })
 
 // 组件卸载时清理
 onUnmounted(() => {
@@ -696,6 +886,7 @@ const removeFile = async (fileId) => {
 
 // 合并提交和保存方法
 const submitMemo = async () => {
+  if (!ensureUnlocked()) return
   if (!content.value.trim()) {
     showToast(t('editor.emptyContent'))
     return
@@ -1075,6 +1266,21 @@ const filteredTags = computed(() => {
 
 // 处理键盘事件
 const handleKeydown = (e) => {
+  if (
+    settings.value.enableShortcuts &&
+    (e.ctrlKey || e.metaKey) &&
+    e.key.toLowerCase() === 'l'
+  ) {
+    e.preventDefault()
+    e.stopPropagation()
+    handleLockButtonClick()
+    return
+  }
+
+  if (isLocked.value) {
+    return
+  }
+
   // 1. 如果正在提交，立刻拦截（防止一发三连的核心锁）
   if (isSubmitting.value) {
     e.preventDefault()
@@ -1407,6 +1613,7 @@ const formatContent = (text, url, title) => {
 
 // 切换视图
 const switchView = () => {
+  if (!ensureUnlocked()) return
   if (!ensureConfiguredOrOpenSettings()) return
   if(showSettings.value) showSettings.value = false;
   currentView.value = currentView.value === 'editor' ? 'list' : 'editor'
@@ -1414,6 +1621,7 @@ const switchView = () => {
 
 // 切换到编辑器
 const switchToEditor = () => {
+  if (!ensureUnlocked()) return
   if (!ensureConfiguredOrOpenSettings()) return
   if(showSettings.value) showSettings.value = false;
   currentView.value = 'editor'
@@ -1425,6 +1633,7 @@ const switchToEditor = () => {
 
 // 切换到列表视图
 const switchToList = () => {
+  if (!ensureUnlocked()) return
   if (!ensureConfiguredOrOpenSettings()) return
   // 如果是从编辑器切换到列表
   if (currentView.value === 'editor') {
@@ -1446,6 +1655,7 @@ const switchToList = () => {
 
 // 处理编辑备忘录
 const handleEditMemo = (memo) => {
+  if (!ensureUnlocked()) return
   if (!ensureConfiguredOrOpenSettings()) return
   editingMemo.value = memo
   content.value = memo.content
@@ -2450,6 +2660,112 @@ textarea {
   color: #10B981;
 }
 
+.lock-toggle-btn {
+  padding: 6px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.lock-toggle-btn:hover {
+  background: #f5f5f5;
+  color: #10B981;
+}
+
+.lock-modal-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 16px;
+}
+
+.lock-modal {
+  width: 100%;
+  max-width: 360px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lock-modal h3,
+.lock-screen-card h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.lock-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.lock-primary-btn,
+.lock-secondary-btn {
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.lock-primary-btn {
+  background: #10B981;
+  color: #fff;
+}
+
+.lock-primary-btn:hover {
+  background: #0D9F6E;
+}
+
+.lock-secondary-btn {
+  background: #f3f4f6;
+  color: #333;
+}
+
+.lock-secondary-btn:hover {
+  background: #e5e7eb;
+}
+
+.lock-screen-overlay {
+  position: absolute;
+  inset: 50px 0 0 0;
+  background: #fff;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.lock-screen-card {
+  width: 100%;
+  max-width: 360px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lock-shortcut-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
 .memos-extension.dark .view-switch-btn {
   color: #999;
 }
@@ -2457,6 +2773,39 @@ textarea {
 .memos-extension.dark .view-switch-btn:hover {
   background: #404040;
   color: #fff;
+}
+
+.memos-extension.dark .lock-toggle-btn {
+  color: #999;
+}
+
+.memos-extension.dark .lock-toggle-btn:hover {
+  background: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .lock-modal,
+.memos-extension.dark .lock-screen-card {
+  background: #2d2d2d;
+  border: 1px solid #404040;
+}
+
+.memos-extension.dark .lock-modal h3,
+.memos-extension.dark .lock-screen-card h3 {
+  color: #fff;
+}
+
+.memos-extension.dark .lock-shortcut-hint {
+  color: #bbb;
+}
+
+.memos-extension.dark .lock-secondary-btn {
+  background: #404040;
+  color: #fff;
+}
+
+.memos-extension.dark .lock-secondary-btn:hover {
+  background: #505050;
 }
 
 /* 确保所有元素都使用 border-box */

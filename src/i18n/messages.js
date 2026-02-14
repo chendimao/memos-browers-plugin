@@ -34,6 +34,30 @@ export const messages = {
       editMemo: '编辑备忘录',
       saveMemo: '保存备忘录'
     },
+
+    // 锁屏
+    lock: {
+      settingTitle: '锁屏设置',
+      enable: '启用锁屏',
+      password: '锁屏密码',
+      confirmPassword: '确认密码',
+      passwordPlaceholder: '请输入锁屏密码',
+      confirmPasswordPlaceholder: '请再次输入锁屏密码',
+      lockAction: '锁定',
+      unlockAction: '解锁',
+      lockConfirmTitle: '锁定前验证',
+      unlockTitle: '输入密码解锁',
+      pageLocked: '页面已锁定',
+      lockSuccess: '锁定成功',
+      unlockSuccess: '解锁成功',
+      passwordRequired: '请输入密码和确认密码',
+      passwordRequiredSingle: '请输入密码',
+      passwordMismatch: '两次输入的密码不一致',
+      passwordWrong: '密码错误',
+      needSetPassword: '请先在设置中保存锁屏密码',
+      unlockFirst: '请先解锁后再操作',
+      shortcutHint: '快捷键：Ctrl/Cmd + L'
+    },
     
     // 设置页面
     settings: {
@@ -74,7 +98,8 @@ export const messages = {
       enableShortcuts: '启用快捷键',
       shortcuts: {
         save: '快速保存',
-        visibility: '切换可见性'
+        visibility: '切换可见性',
+        lock: '锁定/解锁'
       },
       
       // 标签设置
@@ -238,6 +263,30 @@ export const messages = {
       editMemo: 'Edit memo',
       saveMemo: 'Save memo'
     },
+
+    // Lock screen
+    lock: {
+      settingTitle: 'Lock Screen',
+      enable: 'Enable lock screen',
+      password: 'Lock password',
+      confirmPassword: 'Confirm password',
+      passwordPlaceholder: 'Enter lock password',
+      confirmPasswordPlaceholder: 'Re-enter lock password',
+      lockAction: 'Lock',
+      unlockAction: 'Unlock',
+      lockConfirmTitle: 'Verify before locking',
+      unlockTitle: 'Enter password to unlock',
+      pageLocked: 'Page is locked',
+      lockSuccess: 'Locked successfully',
+      unlockSuccess: 'Unlocked successfully',
+      passwordRequired: 'Please enter password and confirmation',
+      passwordRequiredSingle: 'Please enter password',
+      passwordMismatch: 'Passwords do not match',
+      passwordWrong: 'Incorrect password',
+      needSetPassword: 'Please set and save a lock password first',
+      unlockFirst: 'Please unlock first',
+      shortcutHint: 'Shortcut: Ctrl/Cmd + L'
+    },
     
     // Settings page
     settings: {
@@ -278,7 +327,8 @@ export const messages = {
       enableShortcuts: 'Enable Shortcuts',
       shortcuts: {
         save: 'Quick Save',
-        visibility: 'Toggle Visibility'
+        visibility: 'Toggle Visibility',
+        lock: 'Lock/Unlock'
       },
       
       // Tag settings

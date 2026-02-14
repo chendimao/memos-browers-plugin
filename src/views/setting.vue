@@ -128,6 +128,10 @@
           <span>Ctrl/Cmd + Shift + P</span>
           <span>{{ t('settings.shortcuts.visibility') }}</span>
         </div>
+        <div class="shortcut-item">
+          <span>Ctrl/Cmd + L</span>
+          <span>{{ t('settings.shortcuts.lock') }}</span>
+        </div>
       </div>
 
       <h2 v-if="localSettings.apiVersion !== 'v24'">{{ t('settings.tag') }}</h2>
@@ -280,6 +284,37 @@
       <label for="showWordCount">{{ t('settings.showWordCount') }}</label>
     </div>
 
+    <h2>{{ t('lock.settingTitle') }}</h2>
+    <div class="form-group checkbox">
+      <input
+        id="lockEnabled"
+        type="checkbox"
+        v-model="localSettings.lockEnabled"
+        :disabled="isLoading"
+      >
+      <label for="lockEnabled">{{ t('lock.enable') }}</label>
+    </div>
+    <template v-if="localSettings.lockEnabled">
+      <div class="form-group">
+        <label>{{ t('lock.password') }}</label>
+        <input
+          v-model="lockPassword"
+          type="password"
+          :placeholder="t('lock.passwordPlaceholder')"
+          :disabled="isLoading"
+        >
+      </div>
+      <div class="form-group">
+        <label>{{ t('lock.confirmPassword') }}</label>
+        <input
+          v-model="lockConfirmPassword"
+          type="password"
+          :placeholder="t('lock.confirmPasswordPlaceholder')"
+          :disabled="isLoading"
+        >
+      </div>
+    </template>
+
     <div class="form-group">
       <label>{{ t('settings.theme') }}</label>
       <select v-model="localSettings.theme">
@@ -346,6 +381,7 @@ import { showToast } from '../utils/toast'
 import { createApiService } from '../api'
 import CustomSelect from '../components/CustomSelect.vue'
 import TagSelector from '../components/TagSelector.vue'
+import { hashPassword } from '../utils/lock.js'
 import { t, getCurrentLanguage, setLanguage, getSupportedLanguages } from '../i18n'
 
     const props = defineProps({
@@ -415,11 +451,15 @@ const fetchTags = async () => {
 // 标签相关状态
 const tags = ref([])
 const tagCounts = ref({})
+const lockPassword = ref('')
+const lockConfirmPassword = ref('')
   
     const currentContent = ref(props.content);
     const showSettings = ref(props.showSettings);
     const editorRef = ref(props.editorRef); 
 const localSettings = ref({ 
+  lockEnabled: false,
+  lockPasswordHash: '',
   ...props.settings, 
 });
 
@@ -430,7 +470,11 @@ watch(() => props.showSettings, (newVal) => {
 watch(() => props.settings, (newVal) => {
     // 只在设置面板关闭时更新本地设置
     if (!showSettings.value) {
-        localSettings.value = { ...newVal }
+        localSettings.value = {
+          lockEnabled: false,
+          lockPasswordHash: '',
+          ...newVal
+        }
     }
     }, { deep: true })
 
@@ -451,7 +495,20 @@ watch(() => props.showSettings, (newVal) => {
   showSettings.value = newVal
   // 当设置面板打开时，复制一份原始设置
   if (newVal) {
-    localSettings.value = { ...props.settings }
+    localSettings.value = {
+      lockEnabled: false,
+      lockPasswordHash: '',
+      ...props.settings
+    }
+    lockPassword.value = ''
+    lockConfirmPassword.value = ''
+  }
+})
+
+watch(() => localSettings.value.lockEnabled, (enabled) => {
+  if (!enabled) {
+    lockPassword.value = ''
+    lockConfirmPassword.value = ''
   }
 })
 
@@ -536,6 +593,30 @@ const saveSettings = async () => {
     localSettings.value.customTags = validation.tags.join(', ')
   }
 
+  let lockPasswordHash = localSettings.value.lockPasswordHash || ''
+  if (localSettings.value.lockEnabled) {
+    if (lockPassword.value || lockConfirmPassword.value) {
+      if (!lockPassword.value.trim() || !lockConfirmPassword.value.trim()) {
+        showToast(t('lock.passwordRequired'), 'error')
+        return
+      }
+      if (lockPassword.value !== lockConfirmPassword.value) {
+        showToast(t('lock.passwordMismatch'), 'error')
+        return
+      }
+      try {
+        lockPasswordHash = await hashPassword(lockPassword.value)
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : t('error')
+        showToast(errorMessage, 'error')
+        return
+      }
+    } else if (!lockPasswordHash) {
+      showToast(t('lock.needSetPassword'), 'error')
+      return
+    }
+  }
+
   isLoading.value = true
   try {
     // 测试 API 连接
@@ -550,7 +631,9 @@ const saveSettings = async () => {
     const settingsToSave = {
       ...localSettings.value,
       userInfo: result.data,
-      preferredTags: localSettings.value.preferredTags || [] // 确保 preferredTags 被保存
+      preferredTags: localSettings.value.preferredTags || [], // 确保 preferredTags 被保存
+      lockEnabled: !!localSettings.value.lockEnabled,
+      lockPasswordHash
     }
     console.log('Memos: 准备保存的设置', settingsToSave); 
     console.log('Memos: preserveFormatting值', settingsToSave.preserveFormatting);
@@ -573,6 +656,8 @@ const saveSettings = async () => {
     }
     
     showToast('设置保存成功！')
+    lockPassword.value = ''
+    lockConfirmPassword.value = ''
     // 保存成功后刷新标签
     await fetchTags()
   } catch (error) {
@@ -744,8 +829,12 @@ const resetSettings = () => {
       settingHeight: 600,
       tagFilterStyle: 'list',
       preferredTags: [], // 确保重置时包含 preferredTags
-      preserveFormatting: true // 默认启用样式保留
+      preserveFormatting: true, // 默认启用样式保留
+      lockEnabled: false,
+      lockPasswordHash: ''
     }
+    lockPassword.value = ''
+    lockConfirmPassword.value = ''
     showToast('设置已重置')
   }
 }
@@ -753,7 +842,13 @@ const resetSettings = () => {
 // 修改取消设置函数
 const cancelSettings = () => {
   // 恢复原始设置
-  localSettings.value = { ...props.settings }
+  localSettings.value = {
+    lockEnabled: false,
+    lockPasswordHash: '',
+    ...props.settings
+  }
+  lockPassword.value = ''
+  lockConfirmPassword.value = ''
   // 恢复原始语言选择
   currentLanguage.value = getCurrentLanguage()
   // 关闭设置面板
