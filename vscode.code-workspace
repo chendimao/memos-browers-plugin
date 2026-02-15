@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"terminal.integrated.defaultLocation": "editor",
+		"terminal.integrated.tabs.enabled": true,
+		"terminal.integrated.splitCwd": "inherited",
+		"terminal.integrated.focusAfterRun": "terminal",
+		"workbench.panel.defaultLocation": "bottom",
+		"workbench.editor.openSideBySideDirection": "right",
+		"workbench.editor.closeEmptyGroups": false,
+		"workbench.editor.enablePreview": true,
+		"workbench.editor.enablePreviewFromQuickOpen": true
+	}
+}

@@ -1,0 +1,126 @@
+{
+  "appName": {
+    "message": "Memos Quick Note",
+    "description": "The name of the extension"
+  },
+  "appDescription": {
+    "message": "An Edge extension for quickly adding notes to Memos",
+    "description": "The description of the extension"
+  },
+  "settings": {
+    "message": "Settings",
+    "description": "Settings page title"
+  },
+  "save": {
+    "message": "Save",
+    "description": "Save button text"
+  },
+  "cancel": {
+    "message": "Cancel",
+    "description": "Cancel button text"
+  },
+  "confirm": {
+    "message": "Confirm",
+    "description": "Confirm button text"
+  },
+  "delete": {
+    "message": "Delete",
+    "description": "Delete button text"
+  },
+  "edit": {
+    "message": "Edit",
+    "description": "Edit button text"
+  },
+  "loading": {
+    "message": "Loading...",
+    "description": "Loading text"
+  },
+  "success": {
+    "message": "Success",
+    "description": "Success message"
+  },
+  "error": {
+    "message": "Error",
+    "description": "Error message"
+  },
+  "warning": {
+    "message": "Warning",
+    "description": "Warning message"
+  },
+  "appTitle": {
+    "message": "Memos Quick Note",
+    "description": "App title"
+  },
+  "editSuccess": {
+    "message": "Update successful",
+    "description": "Edit success message"
+  },
+  "saveSuccess": {
+    "message": "Create successful",
+    "description": "Save success message"
+  },
+  "editError": {
+    "message": "Update failed",
+    "description": "Edit error message"
+  },
+  "saveError": {
+    "message": "Create failed",
+    "description": "Save error message"
+  },
+  "switchToEditor": {
+    "message": "Switch to editor",
+    "description": "Switch to editor text"
+  },
+  "switchToList": {
+    "message": "Switch to list",
+    "description": "Switch to list text"
+  },
+  "editMemo": {
+    "message": "Edit memo",
+    "description": "Edit memo text"
+  },
+  "saveMemo": {
+    "message": "Save memo",
+    "description": "Save memo text"
+  },
+  "settingsTitle": {
+    "message": "Settings",
+    "description": "Settings page title"
+  },
+  "basicSettings": {
+    "message": "Basic Settings",
+    "description": "Basic settings title"
+  },
+  "contentSettings": {
+    "message": "Content Settings",
+    "description": "Content settings title"
+  },
+  "defaultSettings": {
+    "message": "Default Settings",
+    "description": "Default settings title"
+  },
+  "shortcutSettings": {
+    "message": "Shortcut Settings",
+    "description": "Shortcut settings title"
+  },
+  "tagSettings": {
+    "message": "Tag Settings",
+    "description": "Tag settings title"
+  },
+  "pageSettings": {
+    "message": "Page Settings",
+    "description": "Page settings title"
+  },
+  "otherSettings": {
+    "message": "Other Settings",
+    "description": "Other settings title"
+  },
+  "configManagement": {
+    "message": "Configuration Management",
+    "description": "Configuration management title"
+  },
+  "about": {
+    "message": "About",
+    "description": "About title"
+  }
+} 

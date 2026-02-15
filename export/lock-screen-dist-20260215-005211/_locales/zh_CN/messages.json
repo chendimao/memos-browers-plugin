@@ -1,0 +1,126 @@
+{
+  "appName": {
+    "message": "Memos 快速笔记",
+    "description": "扩展名称"
+  },
+  "appDescription": {
+    "message": "一个用于快速添加笔记到 Memos 的扩展",
+    "description": "扩展描述"
+  },
+  "settings": {
+    "message": "设置",
+    "description": "设置页面标题"
+  },
+  "save": {
+    "message": "保存",
+    "description": "保存按钮文本"
+  },
+  "cancel": {
+    "message": "取消",
+    "description": "取消按钮文本"
+  },
+  "confirm": {
+    "message": "确认",
+    "description": "确认按钮文本"
+  },
+  "delete": {
+    "message": "删除",
+    "description": "删除按钮文本"
+  },
+  "edit": {
+    "message": "编辑",
+    "description": "编辑按钮文本"
+  },
+  "loading": {
+    "message": "加载中...",
+    "description": "加载文本"
+  },
+  "success": {
+    "message": "成功",
+    "description": "成功消息"
+  },
+  "error": {
+    "message": "错误",
+    "description": "错误消息"
+  },
+  "warning": {
+    "message": "警告",
+    "description": "警告消息"
+  },
+  "appTitle": {
+    "message": "Memos Quick Note",
+    "description": "应用标题"
+  },
+  "editSuccess": {
+    "message": "更新成功",
+    "description": "编辑成功消息"
+  },
+  "saveSuccess": {
+    "message": "创建成功",
+    "description": "保存成功消息"
+  },
+  "editError": {
+    "message": "更新失败",
+    "description": "编辑失败消息"
+  },
+  "saveError": {
+    "message": "创建失败",
+    "description": "保存失败消息"
+  },
+  "switchToEditor": {
+    "message": "切换到编辑器",
+    "description": "切换到编辑器文本"
+  },
+  "switchToList": {
+    "message": "切换到列表",
+    "description": "切换到列表文本"
+  },
+  "editMemo": {
+    "message": "编辑备忘录",
+    "description": "编辑备忘录文本"
+  },
+  "saveMemo": {
+    "message": "保存备忘录",
+    "description": "保存备忘录文本"
+  },
+  "settingsTitle": {
+    "message": "设置",
+    "description": "设置页面标题"
+  },
+  "basicSettings": {
+    "message": "基本设置",
+    "description": "基本设置标题"
+  },
+  "contentSettings": {
+    "message": "内容设置",
+    "description": "内容设置标题"
+  },
+  "defaultSettings": {
+    "message": "默认设置",
+    "description": "默认设置标题"
+  },
+  "shortcutSettings": {
+    "message": "快捷键设置",
+    "description": "快捷键设置标题"
+  },
+  "tagSettings": {
+    "message": "标签设置",
+    "description": "标签设置标题"
+  },
+  "pageSettings": {
+    "message": "页面设置",
+    "description": "页面设置标题"
+  },
+  "otherSettings": {
+    "message": "其他设置",
+    "description": "其他设置标题"
+  },
+  "configManagement": {
+    "message": "配置管理",
+    "description": "配置管理标题"
+  },
+  "about": {
+    "message": "关于",
+    "description": "关于标题"
+  }
+} 

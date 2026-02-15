@@ -8,14 +8,15 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.3.4",
+    "@vueuse/core": "^10.7.0",
     "axios": "^1.6.2",
-    "@vueuse/core": "^10.7.0"
+    "marked": "^17.0.2",
+    "vue": "^3.3.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.0",
     "@vue/compiler-sfc": "^3.3.4",
-    "vite": "^5.0.0",
-    "sass": "^1.69.5"
+    "sass": "^1.69.5",
+    "vite": "^5.0.0"
   }
 }
