@@ -4,7 +4,7 @@
     "description": "扩展名称"
   },
   "appDescription": {
-    "message": "一个用于快速添加笔记到 Memos 的扩展",
+    "message": "支持锁定功能并兼容 Memos 0.26 API 的快速笔记扩展",
     "description": "扩展描述"
   },
   "settings": {

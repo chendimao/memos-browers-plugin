@@ -149,7 +149,7 @@ export const messages = {
       // 关于
       about: {
         title: 'Memos Quick Note - 您的智能笔记助手',
-        description: '快速捕捉灵感，轻松管理知识。支持 Memos v0.18/v0.24 双版本，一键保存网页内容，智能标签补全，文件图片上传，自定义快捷键，个性化设置，让您的笔记体验更高效、更智能。',
+        description: '快速捕捉灵感，轻松管理知识。现已新增锁定功能，并支持 Memos v0.18/v0.24/v0.26 API，一键保存网页内容，智能标签补全，文件图片上传，自定义快捷键与个性化设置，让笔记体验更高效。',
         contact: '联系方式',
         email: '邮箱',
         qq: 'QQ',
@@ -378,7 +378,7 @@ export const messages = {
       // About
       about: {
         title: 'Memos Quick Note - Your Smart Note Assistant',
-        description: 'Quickly capture ideas and manage knowledge. Supports Memos v0.18/v0.24, one-click save webpage content, smart tag completion, file and image upload, custom shortcuts, personalized settings, making your note-taking experience more efficient and intelligent.',
+        description: 'Quickly capture ideas and manage knowledge. Now includes a lock feature and supports Memos v0.18/v0.24/v0.26 APIs, with one-click web clipping, smart tag completion, file and image upload, custom shortcuts, and personalized settings.',
         contact: 'Contact',
         email: 'Email',
         qq: 'QQ',

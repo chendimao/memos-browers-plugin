@@ -4,7 +4,7 @@
     "description": "The name of the extension"
   },
   "appDescription": {
-    "message": "An Edge extension for quickly adding notes to Memos",
+    "message": "A quick-note extension with lock support and Memos 0.26 API compatibility",
     "description": "The description of the extension"
   },
   "settings": {
