@@ -155,6 +155,7 @@ import TagSelector from '../components/TagSelector.vue'
 import { showToast } from '../utils/toast'
 import { formatTime } from '../utils/index'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { t } from '../i18n'
 
 const props = defineProps({
@@ -208,8 +209,8 @@ const getVisibilityIcon = (visibility) => {
 
 // 格式化内容
 const formatContent = (content) => {
-  // 处理 Markdown 格式，代码块用自定义 renderer
-  return marked(content)
+  // 处理 Markdown 格式并进行 HTML 消毒，避免 XSS
+  return DOMPurify.sanitize(marked(content))
 }
 
 // 获取标签列表
