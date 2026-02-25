@@ -245,7 +245,7 @@ import { t } from './i18n'
 const emit = defineEmits(['refresh', 'switchToList'])
 
 // 开发模式标志
-const isDev = ref(process.env.NODE_ENV === 'development')
+const isDev = ref(import.meta.env.DEV)
 
 // 状态管理
 const showSettings = ref(false)
@@ -501,6 +501,13 @@ const tagSuggestionsPosition = ref({
   width: 0
 })
 
+const handleOutsideDropdownClick = (e) => {
+  const container = document.querySelector('.custom-tags-selector')
+  if (container && !container.contains(e.target)) {
+    showTagDropdown.value = false
+  }
+}
+
 // 方法
 const openSettings = () => {
   if (!ensureUnlocked()) return
@@ -632,12 +639,7 @@ onMounted(() => {
   fetchRemoteTags()
 
   // 点击外部关闭下拉框
-  document.addEventListener('click', (e) => {
-    const container = document.querySelector('.custom-tags-selector')
-    if (container && !container.contains(e.target)) {
-      showTagDropdown.value = false
-    }
-  })
+  document.addEventListener('click', handleOutsideDropdownClick)
 
   // 添加一个 ResizeObserver 来监听编辑器容器的大小变化
   const resizeObserver = new ResizeObserver(() => {
@@ -704,7 +706,7 @@ watch(isLocked, (locked) => {
 // 组件卸载时清理
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown, { capture: true })
-  document.removeEventListener('click', () => {})
+  document.removeEventListener('click', handleOutsideDropdownClick)
 })
 
 // 插入代码块

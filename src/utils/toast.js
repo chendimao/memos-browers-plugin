@@ -1,7 +1,7 @@
 /**
  * 显示全局 Toast 提示
  * @param {string} message - 提示消息
- * @param {string} type - 提示类型 ('success', 'error', 'info')
+ * @param {string} type - 提示类型 ('success', 'error', 'warning', 'info')
  */
 export const showToast = (message, type = 'success') => {
   // 创建 toast 元素
@@ -48,6 +48,7 @@ const getToastIcon = (type) => {
   const icons = {
     success: 'fas fa-check-circle',
     error: 'fas fa-exclamation-circle',
+    warning: 'fas fa-exclamation-triangle',
     info: 'fas fa-info-circle'
   }
   return icons[type] || icons.success
@@ -81,6 +82,11 @@ style.textContent = `
 .toast.error {
   background: #EF4444;
   color: white;
+}
+
+.toast.warning {
+  background: #FEF3C7;
+  color: #92400E;
 }
 
 .toast.info {

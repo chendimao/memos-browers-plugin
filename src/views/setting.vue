@@ -553,16 +553,16 @@ const handleLanguageChange = (event) => {
 // 修改保存设置函数
 const saveSettings = async () => {
   if (!isValid.value) {
-    showToast('请填写必要的设置项', 'error')
+    showToast(t('settings.validationRequired'), 'error')
     return
   }
   
   if (!localSettings.value.host) {
-    showToast('主页网址不能为空', 'error')
+    showToast(t('settings.hostRequired'), 'error')
     return
   }
   if (!localSettings.value.token) {
-    showToast('Access Token 不能为空', 'error')
+    showToast(t('settings.tokenRequired'), 'error')
     return
   }
 
@@ -667,7 +667,7 @@ const saveSettings = async () => {
 }
 
 // 开发模式标志
-const isDev = ref(process.env.NODE_ENV === 'development')
+const isDev = ref(import.meta.env.DEV)
 
 // 加载状态
 const isLoading = ref(false)

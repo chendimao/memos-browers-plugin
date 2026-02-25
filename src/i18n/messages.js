@@ -80,6 +80,9 @@ export const messages = {
       tokenOpenAPI: 'Access Token / OpenAPI',
       tokenPlaceholder: '请输入 Memos Access Tokens',
       tokenOpenAPIPlaceholder: '请输入 Access Token 或 OpenAPI',
+      validationRequired: '请填写必要的设置项',
+      hostRequired: '主页网址不能为空',
+      tokenRequired: 'Access Token 不能为空',
       
       // 内容设置
       addSource: '自动添加来源信息',
@@ -309,6 +312,9 @@ export const messages = {
       tokenOpenAPI: 'Access Token / OpenAPI',
       tokenPlaceholder: 'Enter Memos Access Tokens',
       tokenOpenAPIPlaceholder: 'Enter Access Token or OpenAPI',
+      validationRequired: 'Please fill in required settings',
+      hostRequired: 'Host URL is required',
+      tokenRequired: 'Access Token is required',
       
       // Content settings
       addSource: 'Automatically add source information',
