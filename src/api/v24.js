@@ -685,7 +685,12 @@ export const v24Api = {
     // 构建过滤条件
     let filter = '';
     if (content) {
-      filter = `content.contains("${content}")`;
+      const trimmedContent = content.trim()
+      if (trimmedContent) {
+        // 转义双引号防止 CEL 注入
+        const escapedContent = trimmedContent.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+        filter = `content.contains("${escapedContent}")`
+      }
     }  
     
     // 使用 pageToken 替代 offset

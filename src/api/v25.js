@@ -864,7 +864,9 @@ export const v25Api = {
     if (content) {
       const trimmedContent = content.trim();
       if (trimmedContent) {
-        filter = `content.contains("${trimmedContent}")`;
+        // 转义双引号防止 CEL 注入
+        const escapedContent = trimmedContent.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+        filter = `content.contains("${escapedContent}")`;
       }
     }  
     

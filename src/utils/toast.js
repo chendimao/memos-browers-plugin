@@ -54,9 +54,11 @@ const getToastIcon = (type) => {
   return icons[type] || icons.success
 }
 
-// 添加全局样式
-const style = document.createElement('style')
-style.textContent = `
+// 添加全局样式（幂等）
+if (!document.getElementById('memos-toast-styles')) {
+  const style = document.createElement('style')
+  style.id = 'memos-toast-styles'
+  style.textContent = `
 .toast {
   position: fixed;
   top: 20px;
@@ -94,4 +96,5 @@ style.textContent = `
   color: white;
 }
 `
-document.head.appendChild(style) 
+  document.head.appendChild(style)
+}
