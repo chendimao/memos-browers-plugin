@@ -291,13 +291,16 @@ const fetchMemos = async () => {
     if (props.settings.apiVersion === 'v24') {
       nextPageToken.value = data.nextPageToken;
       data = data.memos;
-      for (const memo of data) {
-        const resources = await api.listResources(props.settings.host, props.settings.token, memo.name);
-        console.log(resources, 'resources');
-        if (resources && resources.resources.length > 0) {
-          memo.resources = resources.resources;
+      await Promise.all(data.map(async (memo) => {
+        try {
+          const resources = await api.listResources(props.settings.host, props.settings.token, memo.name)
+          if (resources && resources.resources && resources.resources.length > 0) {
+            memo.resources = resources.resources
+          }
+        } catch (error) {
+          console.warn('获取资源失败:', memo.name, error)
         }
-      }
+      }))
     } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
       // v25/v26 版本数据处理
       nextPageToken.value = data.nextPageToken || data.next_page_token || ''
@@ -407,25 +410,10 @@ const refreshMemos = () => {
 
 // 获取便签标识符（根据API版本）
 const getMemoIdentifier = (memo) => {
-  let identifier
   if (props.settings.apiVersion === 'v18') {
-    identifier = memo.id
-  } else if (props.settings.apiVersion === 'v24') {
-    identifier = memo.name
-  } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
-    identifier = memo.name
-  } else {
-    // 默认尝试使用name，如果没有则使用id
-    identifier = memo.name || memo.id
+    return memo.id
   }
-  
-  console.log('getMemoIdentifier:', {
-    apiVersion: props.settings.apiVersion,
-    memo: { id: memo.id, name: memo.name },
-    identifier
-  })
-  
-  return identifier
+  return memo.name || memo.id
 }
 
 // 删除备忘录
@@ -453,14 +441,13 @@ const switchToEditor = () => {
   emits('switchToEditor')
 }
 
-// 监听搜索查询变化
+// 监听搜索查询变化（400ms防抖）
+let searchTimer = null
 watch(searchQuery, () => {
-  fetchMemos()
-})
-
-// 监听标签选择变化
-watch(selectedTag, () => {
-  fetchMemos()
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    fetchMemos()
+  }, 400)
 })
 
 // 监听设置变化
@@ -539,13 +526,16 @@ const loadMore = async () => {
     if (props.settings.apiVersion === 'v24') {
       nextPageToken.value = data.nextPageToken;
       data = data.memos;
-      for (const memo of data) {
-        const resources = await api.listResources(props.settings.host, props.settings.token, memo.name);
-        console.log(resources, 'resources');
-        if (resources && resources.resources.length > 0) {
-          memo.resources = resources.resources;
+      await Promise.all(data.map(async (memo) => {
+        try {
+          const resources = await api.listResources(props.settings.host, props.settings.token, memo.name)
+          if (resources && resources.resources && resources.resources.length > 0) {
+            memo.resources = resources.resources
+          }
+        } catch (error) {
+          console.warn('获取资源失败:', memo.name, error)
         }
-      }
+      }))
     } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
       // v25/v26 版本数据处理
       nextPageToken.value = data.nextPageToken || data.next_page_token || ''
