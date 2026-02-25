@@ -1683,6 +1683,7 @@ const handleEditMemo = (memo) => {
   editingMemo.value = memo
   content.value = memo.content
   currentVisibility.value = memo.visibility
+  visibility.value = memo.visibility
   currentView.value = 'editor'
 }
 

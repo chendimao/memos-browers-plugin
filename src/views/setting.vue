@@ -463,10 +463,6 @@ const localSettings = ref({
   ...props.settings, 
 });
 
-watch(() => props.showSettings, (newVal) => {
-    showSettings.value = newVal
-})
-
 watch(() => props.settings, (newVal) => {
     // 只在设置面板关闭时更新本地设置
     if (!showSettings.value) {
@@ -638,8 +634,10 @@ const saveSettings = async () => {
     console.log('Memos: 准备保存的设置', settingsToSave); 
     console.log('Memos: preserveFormatting值', settingsToSave.preserveFormatting);
     
-    // 直接使用chrome.storage.local.set来确保设置被正确保存
-    chrome.storage.local.set({ 'memos-settings': settingsToSave });
+    // 使用 Promise 包装确保写入完成
+    await new Promise((resolve) => {
+      chrome.storage.local.set({ 'memos-settings': settingsToSave }, resolve)
+    })
     // 更新父组件设置
     emits('update:settings', settingsToSave)
     
