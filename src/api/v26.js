@@ -126,14 +126,11 @@ export const v26Api = {
       filter = filter ? `${filter} && ${visibilityFilter}` : visibilityFilter
     }
 
-    // 与现有调用约定对齐，同时兼容常见查询参数命名
     if (offset) {
       url.searchParams.append('pageToken', offset)
-      url.searchParams.append('page_token', offset)
     }
 
     url.searchParams.append('pageSize', limit)
-    url.searchParams.append('page_size', limit)
 
     if (filter) {
       url.searchParams.append('filter', filter)
@@ -145,7 +142,6 @@ export const v26Api = {
     }
 
     url.searchParams.append('orderBy', 'pinned desc, display_time desc')
-    url.searchParams.append('order_by', 'pinned desc, display_time desc')
     url.searchParams.append('state', 'NORMAL')
 
     return await fetch(url.toString(), {

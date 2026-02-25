@@ -11,7 +11,7 @@ export const v24Api = {
    * @returns {Promise<Object>}
    */
   async createMemo(host, token, content, visibility = 'PUBLIC', relationList = []) {
-    return await fetch(`${host}/api/v1/memos`, {
+    const response = await fetch(`${host}/api/v1/memos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -21,12 +21,16 @@ export const v24Api = {
         content,
         visibility,
         createdTs: Date.now(),
-        relationList: relationList, 
+        relationList: relationList,
       })
     })
 
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.message || `创建失败 (${response.status})`)
+    }
 
- 
+    return response
   },
 
   /**
