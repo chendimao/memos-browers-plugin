@@ -420,16 +420,16 @@ const fetchTags = async () => {
     // 处理不同版本的API返回格式
     if (localSettings.value.apiVersion === 'v18') {
       tags.value = data || []
-      // v1版本可能没有标签计数，设置默认值1
       tagCounts.value = (data || []).reduce((acc, tag) => {
         acc[tag] = 1
         return acc
       }, {})
     } else {
-      // v2版本的标签数据处理
-      tags.value = data;
-      tagCounts.value = (data || []).reduce((acc, tag) => {
-        acc[tag.name] = tag.count
+      // v24/v25/v26 返回字符串数组
+      tags.value = Array.isArray(data) ? data : []
+      tagCounts.value = (Array.isArray(data) ? data : []).reduce((acc, tag) => {
+        const tagName = typeof tag === 'string' ? tag : (tag.name || tag)
+        acc[tagName] = typeof tag === 'object' ? (tag.count || 1) : 1
         return acc
       }, {})
     }

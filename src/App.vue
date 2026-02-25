@@ -545,21 +545,24 @@ const fetchRemoteTags = async () => {
     
     // 处理不同版本的API返回格式
     let remoteTags = []
-    if (settings.value.apiVersion === 'v18') {
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+      // v24/v25/v26 返回字符串数组
       remoteTags = data
-      // 更新标签计数
       tagCounts.value = data.reduce((acc, tag) => {
         acc[tag] = 1
         return acc
       }, {})
-    } else {
-      // v24 版本的标签数据格式不同
-      remoteTags = data.map(tag => tag.name)
-      // 更新标签计数
+    } else if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+      // 兼容对象数组格式
+      remoteTags = data.map(tag => tag.name || tag)
       tagCounts.value = data.reduce((acc, tag) => {
-        acc[tag.name] = tag.count
+        const tagName = tag.name || tag
+        acc[tagName] = tag.count || 1
         return acc
       }, {})
+    } else {
+      remoteTags = data || []
+      tagCounts.value = {}
     }
 
     // 获取设置中的自定义标签
