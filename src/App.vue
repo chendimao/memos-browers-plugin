@@ -2930,4 +2930,296 @@ textarea {
 .dark .format-notification {
   background: #45a049;
 }
+
+/* Figma redesign overrides */
+.memos-extension {
+  background: linear-gradient(138deg, var(--mqn-bg-start), var(--mqn-bg-mid), var(--mqn-bg-end));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--mqn-radius-lg);
+  color: var(--mqn-text-strong);
+  box-shadow: var(--mqn-shadow-lg);
+  overflow: hidden;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--mqn-border);
+  background: var(--mqn-surface-strong);
+  backdrop-filter: blur(16px);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--mqn-text-strong);
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.view-switch-btn,
+.lock-toggle-btn,
+.settings-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--mqn-border-soft);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--mqn-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.view-switch-btn:hover,
+.lock-toggle-btn:hover,
+.settings-icon:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--mqn-shadow-sm);
+}
+
+.format-notification {
+  margin: 10px 12px 0;
+  border-radius: var(--mqn-radius-sm);
+  background: linear-gradient(135deg, #34d399, #10b981);
+  box-shadow: var(--mqn-shadow-sm);
+  font-size: 12px;
+}
+
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  min-height: 0;
+}
+
+.upload-preview {
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-md);
+  background: var(--mqn-surface);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--mqn-shadow-sm);
+  padding: 10px;
+}
+
+.editor-wrapper {
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-xl);
+  background: var(--mqn-surface);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--mqn-shadow-md);
+  padding: 14px;
+}
+
+.content-editor {
+  border: none;
+  border-radius: var(--mqn-radius-md);
+  background: rgba(255, 255, 255, 0.35);
+  color: var(--mqn-text);
+  line-height: 1.6;
+  padding: 14px;
+  min-height: 190px;
+}
+
+.content-editor:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.65), 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.content-editor::placeholder {
+  color: #94a3b8;
+}
+
+.stats-panel {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.45);
+  font-size: 12px;
+  color: var(--mqn-text-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.toolbar {
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-lg);
+  background: var(--mqn-surface);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--mqn-shadow-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.markdown-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.markdown-tools button,
+.upload-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--mqn-border-soft);
+  border-radius: var(--mqn-radius-sm);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--mqn-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.markdown-tools button:hover,
+.upload-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(52, 211, 153, 0.6);
+}
+
+.divider {
+  width: 1px;
+  height: 22px;
+  margin: 5px 3px;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+.action-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.left-tools,
+.right-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.right-tools {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.submit-btn {
+  border: none;
+  border-radius: var(--mqn-radius-sm);
+  background: linear-gradient(90deg, #10b981, #059669);
+  color: #fff;
+  min-height: 38px;
+  padding: 0 16px;
+  font-weight: 600;
+  box-shadow: var(--mqn-shadow-emerald);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 30px rgba(16, 185, 129, 0.36);
+}
+
+.upload-progress {
+  margin-top: 2px;
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-sm);
+  background: var(--mqn-surface);
+}
+
+.progress-bar {
+  border-radius: var(--mqn-radius-sm);
+  background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.progress-text {
+  color: var(--mqn-text-soft);
+}
+
+.list-view {
+  padding: 0 0 12px;
+}
+
+.lock-modal-mask {
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(2px);
+}
+
+.lock-modal,
+.lock-screen-card {
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-lg);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--mqn-shadow-lg);
+  padding: 18px;
+}
+
+.lock-modal h3,
+.lock-screen-card h3 {
+  color: var(--mqn-text-strong);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.lock-screen-overlay {
+  background: linear-gradient(160deg, rgba(236, 253, 245, 0.95), rgba(245, 243, 255, 0.95));
+}
+
+.lock-shortcut-hint {
+  color: var(--mqn-text-soft);
+}
+
+.memos-extension.dark {
+  background: linear-gradient(138deg, #0f172a, #111827, #1f2937);
+}
+
+.memos-extension.dark header,
+.memos-extension.dark .editor-wrapper,
+.memos-extension.dark .toolbar,
+.memos-extension.dark .upload-preview {
+  background: rgba(31, 41, 55, 0.72);
+  border-color: rgba(75, 85, 99, 0.65);
+}
+
+.memos-extension.dark header h1,
+.memos-extension.dark .content-editor,
+.memos-extension.dark .stats-panel {
+  color: #e5e7eb;
+}
+
+.memos-extension.dark .content-editor::placeholder {
+  color: #9ca3af;
+}
+
+.memos-extension.dark .view-switch-btn,
+.memos-extension.dark .lock-toggle-btn,
+.memos-extension.dark .settings-icon,
+.memos-extension.dark .markdown-tools button,
+.memos-extension.dark .upload-btn {
+  background: rgba(31, 41, 55, 0.88);
+  border-color: rgba(75, 85, 99, 0.8);
+  color: #d1d5db;
+}
+
+:deep(.custom-select .select-input),
+:deep(.tag-selector .tag-input-container) {
+  min-height: 38px;
+}
 </style>

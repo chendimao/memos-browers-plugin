@@ -1509,4 +1509,245 @@ button:disabled {
 .memos-extension.dark .contact-info a {
   color: #10B981;
 }
+
+/* Figma redesign overrides */
+.settings-panel {
+  padding: 12px;
+  background: transparent;
+}
+
+.settings-content {
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-xl);
+  background: var(--mqn-surface);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--mqn-shadow-md);
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.settings-content h2 {
+  margin: 14px 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--mqn-text-strong);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group,
+.setting-item {
+  margin-bottom: 12px;
+}
+
+.form-group label,
+.setting-item label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--mqn-text);
+  font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--mqn-border-soft);
+  border-radius: var(--mqn-radius-sm);
+  background: var(--mqn-surface-strong);
+  color: var(--mqn-text);
+  padding: 8px 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #34d399;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.form-group.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group.checkbox label {
+  margin: 0;
+}
+
+.form-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #10b981;
+}
+
+.number-input {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 8px;
+}
+
+.number-btn {
+  border: 1px solid var(--mqn-border-soft);
+  border-radius: var(--mqn-radius-sm);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--mqn-text);
+}
+
+.setting-description {
+  color: var(--mqn-text-soft);
+  margin-bottom: 8px;
+}
+
+.shortcut-list {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: var(--mqn-radius-md);
+  background: rgba(255, 255, 255, 0.62);
+  padding: 10px 12px;
+}
+
+.shortcut-item + .shortcut-item {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.45);
+}
+
+.config-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.export-btn,
+.import-btn,
+.reset-btn {
+  border: none;
+  border-radius: var(--mqn-radius-sm);
+  min-height: 38px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.export-btn {
+  background: linear-gradient(90deg, #10b981, #059669);
+  box-shadow: var(--mqn-shadow-emerald);
+}
+
+.import-btn {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.28);
+}
+
+.reset-btn {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  box-shadow: 0 12px 22px rgba(220, 38, 38, 0.28);
+}
+
+.about-section {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--mqn-radius-md);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.about-section p {
+  color: var(--mqn-text-soft);
+}
+
+.contact-info {
+  border-top-color: rgba(148, 163, 184, 0.34);
+}
+
+.contact-info h3 {
+  color: var(--mqn-text-strong);
+}
+
+.contact-info a {
+  color: #059669;
+}
+
+.settings-footer {
+  margin-top: 12px;
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-lg);
+  background: var(--mqn-surface-strong);
+  backdrop-filter: blur(14px);
+  padding: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancel-btn,
+.save-btn {
+  min-height: 38px;
+  min-width: 88px;
+  border-radius: var(--mqn-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cancel-btn {
+  border: 1px solid var(--mqn-border-soft);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--mqn-text);
+}
+
+.save-btn {
+  border: none;
+  background: linear-gradient(90deg, #10b981, #059669);
+  color: #fff;
+  box-shadow: var(--mqn-shadow-emerald);
+}
+
+:deep(.custom-select .select-input),
+:deep(.tag-selector .tag-input-container) {
+  min-height: 38px;
+}
+
+.memos-extension.dark .settings-content,
+.memos-extension.dark .settings-footer,
+.memos-extension.dark .shortcut-list,
+.memos-extension.dark .about-section {
+  background: rgba(31, 41, 55, 0.78);
+  border-color: rgba(75, 85, 99, 0.72);
+}
+
+.memos-extension.dark .settings-content h2,
+.memos-extension.dark .form-group label,
+.memos-extension.dark .setting-item label,
+.memos-extension.dark .contact-info h3 {
+  color: #f3f4f6;
+}
+
+.memos-extension.dark .form-group input[type="text"],
+.memos-extension.dark .form-group input[type="password"],
+.memos-extension.dark .form-group input[type="number"],
+.memos-extension.dark .form-group select,
+.memos-extension.dark .form-group textarea,
+.memos-extension.dark .cancel-btn {
+  background: rgba(31, 41, 55, 0.9);
+  border-color: rgba(75, 85, 99, 0.8);
+  color: #e5e7eb;
+}
+
+.memos-extension.dark .setting-description,
+.memos-extension.dark .about-section p {
+  color: #9ca3af;
+}
 </style>
