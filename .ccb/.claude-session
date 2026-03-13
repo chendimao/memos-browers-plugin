@@ -1,0 +1,16 @@
+{
+  "session_id": "ai-1772000862-371",
+  "ccb_project_id": "c61e2d357d84932d37ab2f9888ffc01b359d95da835a3cf3226bc5e17d1d4b04",
+  "work_dir": "/Users/chendimao/WWW/memos-browers-plugin",
+  "work_dir_norm": "/Users/chendimao/WWW/memos-browers-plugin",
+  "start_dir": "/Users/chendimao/WWW/memos-browers-plugin",
+  "terminal": "tmux",
+  "active": true,
+  "started_at": "2026-02-25 14:22:46",
+  "updated_at": "2026-02-25 15:18:04",
+  "pane_id": "%0",
+  "pane_title_marker": "CCB-Claude",
+  "ended_at": "2026-02-25 14:27:38",
+  "claude_session_path": "/Users/chendimao/.claude/projects/-Users-chendimao-WWW-memos-browers-plugin/25e34018-c103-4ba5-bcdd-3a9ad823363e.jsonl",
+  "claude_session_id": "25e34018-c103-4ba5-bcdd-3a9ad823363e"
+}
