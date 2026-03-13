@@ -545,6 +545,14 @@ const handleOutsideDropdownClick = (e) => {
   }
 }
 
+const focusEditor = () => {
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      editorRef.value?.focus()
+    })
+  })
+}
+
 // 方法
 const openSettings = () => {
   if (!ensureUnlocked()) return
@@ -654,6 +662,7 @@ onMounted(() => {
       // 切换到编辑器视图
       showSettings.value = false
       currentView.value = 'editor'
+      focusEditor()
       
       // 如果内容包含格式，添加用户提示
       if (result.hasFormatting) {
@@ -677,6 +686,7 @@ onMounted(() => {
       // 切换到编辑器视图
       showSettings.value = false
       currentView.value = 'editor'
+      focusEditor()
       
       // 如果内容包含格式，添加提示
       if (changes.hasFormatting?.newValue) {
@@ -1554,6 +1564,7 @@ watch([
 // 监听视图变化
 watch(() => currentView.value, (newView) => {
   if (newView === 'editor') {
+    focusEditor()
     nextTick(() => {
       updateEditorHeight()
     })
@@ -1703,10 +1714,6 @@ const switchToEditor = () => {
   if (!ensureConfiguredOrOpenSettings()) return
   if(showSettings.value) showSettings.value = false;
   currentView.value = 'editor'
-  // 等待视图切换完成后再计算高度
-  nextTick(() => {
-    updateEditorHeight()
-  })
 }
 
 // 切换到列表视图
@@ -1739,6 +1746,7 @@ const handleEditMemo = (memo) => {
   content.value = memo.content
   currentVisibility.value = memo.visibility
   visibility.value = memo.visibility
+  showSettings.value = false
   currentView.value = 'editor'
 }
 
