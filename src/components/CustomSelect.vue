@@ -1,5 +1,5 @@
 <template>
-  <div class="custom-select" ref="containerRef">
+  <div class="custom-select" :class="{ 'is-open': showDropdown }" ref="containerRef">
     <div 
       class="select-input"
       :class="{ 'is-open': showDropdown }"
@@ -122,41 +122,52 @@ const handleDocumentClick = (e) => {
 <style scoped>
 .custom-select {
   position: relative;
-  min-width: 120px;
   width: 100%;
-  z-index: 1000;
+  min-width: 120px;
+  z-index: 20;
+}
+
+.custom-select.is-open {
+  z-index: 80;
 }
 
 .select-input {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 6px 12px;
-  background: white;
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--mqn-border-soft);
+  border-radius: var(--mqn-radius-sm);
+  padding: 8px 12px;
+  background: var(--mqn-surface-strong);
+  backdrop-filter: blur(8px);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: all 0.2s;
-  width: 100%;
-  box-sizing: border-box;
+  gap: 10px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .select-input:hover {
-  border-color: #10B981;
+  border-color: rgba(52, 211, 153, 0.7);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .select-input.is-open {
-  border-color: #10B981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+  border-color: #34d399;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .selected-value {
   font-size: 14px;
-  color: #333;
+  color: var(--mqn-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .arrow-icon {
-  color: #666;
+  color: var(--mqn-text-soft);
   transition: transform 0.2s;
 }
 
@@ -168,104 +179,99 @@ const handleDocumentClick = (e) => {
   position: absolute;
   left: 0;
   right: 0;
-  margin-top: 4px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  max-height: 200px;
+  margin-top: 6px;
+  border: 1px solid var(--mqn-border-soft);
+  border-radius: var(--mqn-radius-md);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--mqn-shadow-md);
+  backdrop-filter: blur(10px);
+  max-height: 240px;
   overflow-y: auto;
-  z-index: 1001;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 90;
 }
 
 .select-dropdown.dropdown-up {
   bottom: 100%;
   top: auto;
   margin-top: 0;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .dropdown-item {
-  padding: 8px 12px;
+  padding: 9px 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   font-size: 14px;
-  color: #333;
+  color: var(--mqn-text);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .dropdown-item:hover {
-  background: #f5f5f5;
+  background: rgba(16, 185, 129, 0.09);
 }
 
 .dropdown-item.selected {
-  background: #f0f9f6;
-  color: #10B981;
+  background: rgba(16, 185, 129, 0.16);
+  color: #059669;
 }
 
 .check-mark {
-  color: #10B981;
+  color: #059669;
   font-weight: bold;
 }
 
-/* 滚动条样式 */
 .select-dropdown::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .select-dropdown::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+  background: transparent;
 }
 
 .select-dropdown::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
 }
 
-.select-dropdown::-webkit-scrollbar-thumb:hover {
-  background: #ccc;
-}
-
-/* 深色模式样式 */
 .memos-extension.dark .select-input {
-  background: #2d2d2d;
-  border-color: #404040;
+  background: rgba(31, 41, 55, 0.82);
+  border-color: rgba(75, 85, 99, 0.8);
 }
 
 .memos-extension.dark .select-input:hover {
-  border-color: #10B981;
+  border-color: rgba(52, 211, 153, 0.8);
 }
 
 .memos-extension.dark .selected-value {
-  color: #fff;
+  color: #e5e7eb;
 }
 
 .memos-extension.dark .arrow-icon {
-  color: #999;
+  color: #9ca3af;
 }
 
 .memos-extension.dark .select-dropdown {
-  background: #2d2d2d;
-  border-color: #404040;
+  background: rgba(17, 24, 39, 0.96);
+  border-color: rgba(75, 85, 99, 0.72);
 }
 
 .memos-extension.dark .dropdown-item {
-  color: #fff;
+  color: #e5e7eb;
 }
 
 .memos-extension.dark .dropdown-item:hover {
-  background: #404040;
+  background: rgba(16, 185, 129, 0.2);
 }
 
 .memos-extension.dark .dropdown-item.selected {
-  background: #10B981;
-  color: #fff;
+  background: rgba(16, 185, 129, 0.3);
+  color: #d1fae5;
 }
 
 .memos-extension.dark .check-mark {
-  color: #fff;
+  color: #d1fae5;
 }
-</style> 
+</style>

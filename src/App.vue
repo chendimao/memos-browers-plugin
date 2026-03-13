@@ -1,5 +1,5 @@
 <template>
-  <div class="memos-extension" :class="{ 'dark': settings.theme === 'dark' }" :style="containerStyle">
+  <div class="memos-extension" :class="{ 'dark': resolvedTheme === 'dark' }" :style="containerStyle">
     <header>
       <h1>{{ t('app.title') }}</h1>
       <div class="header-actions">
@@ -248,8 +248,10 @@ const emit = defineEmits(['refresh', 'switchToList'])
 const isDev = ref(import.meta.env.DEV)
 
 // 状态管理
+type PopupPage = 'editor' | 'list' | 'settings'
+
 const showSettings = ref(false)
-const content = ref('')
+const content = useStorage('memos-editor-draft', '')
 const visibility = ref('PUBLIC')
 const lastError = ref(null)
 const editorRef = ref(null)
@@ -266,12 +268,15 @@ const lockActionForm = ref({
 const unlockForm = ref({
   password: ''
 })
+const systemPrefersDark = ref(false)
+let themeMediaQuery: MediaQueryList | null = null
+let handleThemeChange: ((event: MediaQueryListEvent) => void) | null = null
 
 // 使用 useStorage 管理设置
 const settings = useStorage('memos-settings', {
   host: '',
   token: '',
-  apiVersion: 'v25',
+  apiVersion: 'v18',
   addSource: true,
   useQuote: true,
   skipDefaultTags: false,
@@ -289,17 +294,29 @@ const settings = useStorage('memos-settings', {
   settingHeight: 600,
   showWordCount: true,
   enablePreview: true,
-  theme: 'light',
-  defaultView: 'editor',
+  theme: 'system',
+  defaultView: 'rememberLast',
   preserveFormatting: true, // 新增：右键添加时是否保留样式格式
   lockEnabled: false,
   lockPasswordHash: ''
 })
+const persistedLastPage = useStorage<PopupPage>('memos-last-page', 'editor')
 const persistedLockState = useStorage('memos-lock-state', false)
 const isLocked = ref(Boolean(persistedLockState.value))
 
 const hasValue = (value) => typeof value === 'string' && value.trim() !== ''
 const isConfigured = computed(() => hasValue(settings.value.host) && hasValue(settings.value.token))
+const resolvedTheme = computed<'light' | 'dark'>(() => {
+  if (settings.value.theme === 'dark') {
+    return 'dark'
+  }
+
+  if (settings.value.theme === 'system') {
+    return systemPrefersDark.value ? 'dark' : 'light'
+  }
+
+  return 'light'
+})
 
 const ensureConfiguredOrOpenSettings = () => {
   if (isConfigured.value) {
@@ -467,8 +484,28 @@ const previewContent = computed(() => {
   return content.value
 })
 
+const getRememberedPage = (): PopupPage => {
+  return persistedLastPage.value === 'list' || persistedLastPage.value === 'settings'
+    ? persistedLastPage.value
+    : 'editor'
+}
+
+const resolvePreferredPage = (): PopupPage => {
+  if (!isConfigured.value) {
+    return 'settings'
+  }
+
+  if (settings.value.defaultView === 'rememberLast') {
+    return getRememberedPage()
+  }
+
+  return settings.value.defaultView === 'list' ? 'list' : 'editor'
+}
+
 // 视图状态
-const currentView = ref(settings.value.defaultView || 'editor')
+const preferredPage = resolvePreferredPage()
+showSettings.value = preferredPage === 'settings'
+const currentView = ref<'editor' | 'list'>(preferredPage === 'list' ? 'list' : 'editor')
 
 // 计算属性来处理容器样式
 const containerStyle = computed(() => {
@@ -529,7 +566,7 @@ const handleSettingsSaved = async () => {
   await fetchRemoteTags()
 
   // 更新视图
-  if (isConfigured.value && settings.value.defaultView) {
+  if (isConfigured.value && (settings.value.defaultView === 'editor' || settings.value.defaultView === 'list')) {
     currentView.value = settings.value.defaultView
   }
 
@@ -589,6 +626,23 @@ const fetchRemoteTags = async () => {
 
 // 生命周期钩子
 onMounted(() => {
+  settings.value.apiVersion ||= 'v18'
+  settings.value.theme ||= 'system'
+
+  if (window.matchMedia) {
+    themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    systemPrefersDark.value = themeMediaQuery.matches
+    handleThemeChange = (event) => {
+      systemPrefersDark.value = event.matches
+    }
+
+    if (themeMediaQuery.addEventListener) {
+      themeMediaQuery.addEventListener('change', handleThemeChange)
+    } else {
+      themeMediaQuery.addListener(handleThemeChange)
+    }
+  }
+
   // 设置默认可见性
   visibility.value = settings.value.defaultVisibility
 
@@ -598,6 +652,7 @@ onMounted(() => {
       content.value = formatContent(result.selectedText, result.sourceUrl, result.sourceTitle)
       chrome.storage.local.remove(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting'])
       // 切换到编辑器视图
+      showSettings.value = false
       currentView.value = 'editor'
       
       // 如果内容包含格式，添加用户提示
@@ -620,6 +675,7 @@ onMounted(() => {
         changes.sourceTitle?.newValue
       )
       // 切换到编辑器视图
+      showSettings.value = false
       currentView.value = 'editor'
       
       // 如果内容包含格式，添加提示
@@ -676,6 +732,10 @@ watch(() => showSettings.value, (newValue) => {
   }
 })
 
+watch([showSettings, currentView], ([settingsVisible, view]) => {
+  persistedLastPage.value = settingsVisible ? 'settings' : view
+}, { immediate: true })
+
 // 监听设置变化
 watch(() => settings.value.enableShortcuts, (newVal) => {
   if (newVal) {
@@ -705,6 +765,13 @@ watch(isLocked, (locked) => {
 
 // 组件卸载时清理
 onUnmounted(() => {
+  if (themeMediaQuery && handleThemeChange) {
+    if (themeMediaQuery.removeEventListener) {
+      themeMediaQuery.removeEventListener('change', handleThemeChange)
+    } else {
+      themeMediaQuery.removeListener(handleThemeChange)
+    }
+  }
   document.removeEventListener('keydown', handleKeydown, { capture: true })
   document.removeEventListener('click', handleOutsideDropdownClick)
 })
@@ -1476,45 +1543,12 @@ watch([
   () => currentView.value,
   () => showSettings.value,
   () => content.value
-], ([newWidth, newHeight, newListMaxHeight, newSettingHeight, newView, isShowingSettings]) => {
-  // 限制尺寸在扩展的最大限制内
-  const width = Math.min(newWidth, MAX_POPUP_WIDTH)
-  let height
-
-  if (isShowingSettings) {
-    height = Math.min(newSettingHeight, MAX_POPUP_HEIGHT)
-  } else if (newView === 'list') {
-    height = Math.min(newListMaxHeight, MAX_POPUP_HEIGHT)
-  } else {
-    // 编辑器视图 - 让它自适应内容高度，但不小于设置中的高度
-    const editorContainer = document.querySelector('.editor-container')
-    const contentEditor = document.querySelector('.content-editor')
-    const toolbar = document.querySelector('.toolbar')
-    const uploadPreview = document.querySelector('.upload-preview')
-    
-    if (editorContainer && contentEditor && toolbar) {
-      // 计算实际所需的总高度
-      const toolbarHeight = toolbar.offsetHeight
-      const uploadPreviewHeight = uploadPreview ? uploadPreview.offsetHeight : 0
-      const contentHeight = contentEditor.scrollHeight
-      const totalHeight = contentHeight + toolbarHeight + uploadPreviewHeight + 32 // 32 为 padding
-      
-      // 使用设置中的高度作为最小值
-      const minHeight = Math.min(newHeight, MAX_POPUP_HEIGHT)
-      // 取两者中的较大值，但不超过最大限制
-      height = Math.min(Math.max(totalHeight, minHeight), MAX_POPUP_HEIGHT)
-    } else {
-      height = Math.min(newHeight, MAX_POPUP_HEIGHT)
-    }
-  }
-  
-  // 设置 HTML 元素的高度
-  document.documentElement.style.width = `${width}px`
-  document.documentElement.style.height = `${height}px`
-  
-  // 同时设置 body 元素的高度
-  document.body.style.width = `${width}px`
-  document.body.style.height = `${height}px`
+], () => {
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      applyPopupDimensions()
+    })
+  })
 }, { immediate: true })
 
 // 监听视图变化
@@ -1528,8 +1562,27 @@ watch(() => currentView.value, (newView) => {
 
 // 监听设置变化
 watch(() => settings.value.defaultView, (newVal) => {
-  if (newVal) {
+  if (!isConfigured.value) {
+    showSettings.value = true
+    return
+  }
+
+  if (showSettings.value) {
+    return
+  }
+
+  if (newVal === 'editor' || newVal === 'list') {
     currentView.value = newVal
+    return
+  }
+
+  if (newVal === 'rememberLast') {
+    const preferredPage = resolvePreferredPage()
+    if (preferredPage === 'settings') {
+      showSettings.value = true
+      return
+    }
+    currentView.value = preferredPage
   }
 })
 
@@ -1689,20 +1742,42 @@ const handleEditMemo = (memo) => {
   currentView.value = 'editor'
 }
 
+const applyPopupDimensions = () => {
+  const width = Math.min(settings.value.width, MAX_POPUP_WIDTH)
+  let height
+
+  if (showSettings.value) {
+    height = Math.min(settings.value.settingHeight, MAX_POPUP_HEIGHT)
+  } else if (currentView.value === 'list') {
+    height = Math.min(settings.value.listMaxHeight, MAX_POPUP_HEIGHT)
+  } else {
+    const root = document.querySelector('.memos-extension') as HTMLElement | null
+    const minHeight = Math.min(settings.value.height, MAX_POPUP_HEIGHT)
+    const contentHeight = root?.scrollHeight || minHeight
+
+    height = Math.min(Math.max(contentHeight, minHeight), MAX_POPUP_HEIGHT)
+  }
+
+  document.documentElement.style.width = `${width}px`
+  document.documentElement.style.height = `${height}px`
+  document.body.style.width = `${width}px`
+  document.body.style.height = `${height}px`
+}
+
 // 更新高度的函数
 const updateEditorHeight = () => {
   if (currentView.value === 'editor' && !showSettings.value) {
     nextTick(() => {
-      const editorContainer = document.querySelector('.editor-container')
+      const editorContainer = document.querySelector('.editor-container') as HTMLElement | null
       if (editorContainer) {
-        // 使用设置中的高度作为固定高度
+        // 使用设置中的高度作为最小高度，避免工具区换行时底部内容被截断
         const height = Math.min(settings.value.height, MAX_POPUP_HEIGHT)
 
         // 更新所有相关元素的高度
         requestAnimationFrame(() => {
-          editorContainer.style.height = `${height}px`
-          document.documentElement.style.height = `${height}px`
-          document.body.style.height = `${height}px`
+          editorContainer.style.minHeight = `${height}px`
+          editorContainer.style.height = 'auto'
+          applyPopupDimensions()
         })
       }
     })
@@ -2929,5 +3004,355 @@ textarea {
 /* 暗色主题下的格式通知 */
 .dark .format-notification {
   background: #45a049;
+}
+
+/* Figma redesign overrides */
+.memos-extension {
+  background: linear-gradient(180deg, #f4f7fb 0%, #edf2f7 100%);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0;
+  color: var(--mqn-text-strong);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(250, 252, 255, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--mqn-text-strong);
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.view-switch-btn,
+.lock-toggle-btn,
+.settings-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--mqn-border-soft);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--mqn-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.view-switch-btn:hover,
+.lock-toggle-btn:hover,
+.settings-icon:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--mqn-shadow-sm);
+}
+
+.format-notification {
+  margin: 10px 12px 0;
+  border-radius: var(--mqn-radius-sm);
+  background: linear-gradient(135deg, #34d399, #10b981);
+  box-shadow: var(--mqn-shadow-sm);
+  font-size: 12px;
+}
+
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  min-height: 0;
+  background: linear-gradient(180deg, #edf2f7 0%, #e8eef5 100%);
+}
+
+.upload-preview {
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-md);
+  background: var(--mqn-surface);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--mqn-shadow-sm);
+  padding: 10px;
+}
+
+.editor-wrapper {
+  border: 1px solid rgba(203, 213, 225, 0.95);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fdfefe 100%);
+  box-shadow: 0 20px 42px rgba(148, 163, 184, 0.18), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  padding: 16px;
+  position: relative;
+}
+
+.content-editor {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  color: var(--mqn-text);
+  line-height: 1.6;
+  padding: 14px;
+  min-height: 190px;
+  box-shadow: inset 0 1px 2px rgba(148, 163, 184, 0.08);
+}
+
+.content-editor:focus {
+  outline: none;
+  border-color: rgba(20, 184, 166, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.3), 0 0 0 4px rgba(20, 184, 166, 0.12);
+}
+
+.content-editor::placeholder {
+  color: #94a3b8;
+}
+
+.stats-panel {
+  margin-top: 12px;
+  padding: 10px 2px 0;
+  border-top: 1px dashed rgba(148, 163, 184, 0.55);
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.toolbar {
+  border: 1px solid rgba(203, 213, 225, 0.82);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(249, 251, 253, 0.96), rgba(241, 245, 249, 0.96));
+  box-shadow: 0 10px 24px rgba(148, 163, 184, 0.14);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.markdown-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.markdown-tools button,
+.upload-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: var(--mqn-radius-sm);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--mqn-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.markdown-tools button:hover,
+.upload-btn:hover {
+  background: #ffffff;
+  border-color: rgba(20, 184, 166, 0.48);
+}
+
+.divider {
+  width: 1px;
+  height: 22px;
+  margin: 5px 3px;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+.action-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.left-tools,
+.right-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.left-tools {
+  flex: 0 0 auto;
+}
+
+.right-tools {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.right-tools > .tag-selector {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.right-tools > .custom-select {
+  flex: 0 0 132px;
+  min-width: 132px;
+}
+
+.right-tools > .submit-btn {
+  flex: 0 0 auto;
+}
+
+.submit-btn {
+  border: none;
+  border-radius: var(--mqn-radius-sm);
+  background: linear-gradient(90deg, #0f766e, #14b8a6);
+  color: #fff;
+  min-height: 38px;
+  padding: 0 16px;
+  font-weight: 600;
+  box-shadow: 0 16px 30px rgba(15, 118, 110, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 34px rgba(20, 184, 166, 0.3);
+}
+
+.upload-progress {
+  margin-top: 2px;
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-sm);
+  background: var(--mqn-surface);
+}
+
+.progress-bar {
+  border-radius: var(--mqn-radius-sm);
+  background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.progress-text {
+  color: var(--mqn-text-soft);
+}
+
+.list-view {
+  padding: 0 0 12px;
+}
+
+.lock-modal-mask {
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(2px);
+}
+
+.lock-modal,
+.lock-screen-card {
+  border: 1px solid var(--mqn-border);
+  border-radius: var(--mqn-radius-lg);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--mqn-shadow-lg);
+  padding: 18px;
+}
+
+.lock-modal h3,
+.lock-screen-card h3 {
+  color: var(--mqn-text-strong);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.lock-screen-overlay {
+  background: linear-gradient(160deg, rgba(236, 253, 245, 0.95), rgba(245, 243, 255, 0.95));
+}
+
+.lock-shortcut-hint {
+  color: var(--mqn-text-soft);
+}
+
+.memos-extension.dark {
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+}
+
+.memos-extension.dark header {
+  background: rgba(15, 23, 42, 0.88);
+  border-color: rgba(71, 85, 105, 0.45);
+}
+
+.memos-extension.dark .editor-container {
+  background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
+}
+
+.memos-extension.dark .editor-wrapper {
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(15, 23, 42, 0.96));
+  border-color: rgba(71, 85, 105, 0.72);
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.42);
+}
+
+.memos-extension.dark .toolbar,
+.memos-extension.dark .upload-preview {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+  border-color: rgba(71, 85, 105, 0.6);
+}
+
+.memos-extension.dark header h1,
+.memos-extension.dark .content-editor,
+.memos-extension.dark .stats-panel {
+  color: #e5e7eb;
+}
+
+.memos-extension.dark .content-editor::placeholder {
+  color: #9ca3af;
+}
+
+.memos-extension.dark .content-editor {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(17, 24, 39, 0.94));
+  border-color: rgba(71, 85, 105, 0.68);
+  box-shadow: inset 0 1px 2px rgba(2, 6, 23, 0.35);
+}
+
+.memos-extension.dark .view-switch-btn,
+.memos-extension.dark .lock-toggle-btn,
+.memos-extension.dark .settings-icon,
+.memos-extension.dark .markdown-tools button,
+.memos-extension.dark .upload-btn {
+  background: rgba(31, 41, 55, 0.88);
+  border-color: rgba(75, 85, 99, 0.8);
+  color: #d1d5db;
+}
+
+:deep(.custom-select .select-input),
+:deep(.tag-selector .tag-input-container) {
+  min-height: 38px;
+}
+
+:deep(.custom-select .select-input),
+:deep(.tag-selector .tag-input-container),
+:deep(.tag-selector .tag-input) {
+  border-color: rgba(203, 213, 225, 0.92);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: inset 0 1px 2px rgba(148, 163, 184, 0.06);
+}
+
+.memos-extension.dark :deep(.custom-select .select-input),
+.memos-extension.dark :deep(.tag-selector .tag-input-container),
+.memos-extension.dark :deep(.tag-selector .tag-input) {
+  border-color: rgba(71, 85, 105, 0.78);
+  background: rgba(15, 23, 42, 0.74);
+  color: #e5e7eb;
 }
 </style>

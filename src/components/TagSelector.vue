@@ -183,40 +183,44 @@ const handleDocumentClick = (e) => {
 .tag-selector {
   position: relative;
   width: 100%;
-  z-index: 1000;
+  z-index: 20;
 }
 
 .tag-input-container {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 4px 8px;
-  min-height: 32px;
-  background: white;
+  border: 1px solid var(--mqn-border-soft);
+  border-radius: var(--mqn-radius-sm);
+  padding: 6px 10px;
+  min-height: 38px;
+  background: var(--mqn-surface-strong);
+  backdrop-filter: blur(8px);
   cursor: text;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   width: 100%;
-  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .tag-input-container:focus-within {
-  border-color: #10B981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+  border-color: #34d399;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .selected-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
 }
 
 .tag-item {
-  background: #e5e7eb;
-  border-radius: 2px;
-  padding: 2px 6px;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(52, 211, 153, 0.34);
+  border-radius: 999px;
+  padding: 2px 8px;
   font-size: 12px;
+  color: #047857;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -235,86 +239,89 @@ const handleDocumentClick = (e) => {
 
 .tag-filter {
   border: none;
+  background: transparent;
   outline: none;
   flex: 1;
   min-width: 60px;
   font-size: 14px;
-  padding: 2px;
+  color: var(--mqn-text);
+  padding: 2px 0;
+}
+
+.tag-filter::placeholder {
+  color: var(--mqn-text-soft);
 }
 
 .tag-dropdown {
   position: absolute;
   left: 0;
   right: 0;
-  margin-top: 4px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  max-height: 200px;
+  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--mqn-border-soft);
+  border-radius: var(--mqn-radius-md);
+  max-height: 240px;
   overflow-y: auto;
-  z-index: 1001;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 30;
+  box-shadow: var(--mqn-shadow-md);
+  backdrop-filter: blur(10px);
   width: 100%;
-  box-sizing: border-box;
 }
 
 .tag-dropdown.dropdown-up {
   bottom: 100%;
   top: auto;
   margin-top: 0;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .dropdown-item {
-  padding: 8px 12px;
+  padding: 9px 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  color: var(--mqn-text);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .dropdown-item:hover {
-  background: #f5f5f5;
+  background: rgba(16, 185, 129, 0.09);
 }
 
 .dropdown-item.selected {
-  background: #f0f9f6;
+  background: rgba(16, 185, 129, 0.16);
+  color: #059669;
 }
 
 .check-mark {
-  color: #10B981;
+  color: #059669;
   font-weight: bold;
 }
 
-/* 滚动条样式 */
 .tag-dropdown::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .tag-dropdown::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+  background: transparent;
 }
 
 .tag-dropdown::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
 }
 
-.tag-dropdown::-webkit-scrollbar-thumb:hover {
-  background: #ccc;
-}
-
-/* 深色模式样式 */
 .memos-extension.dark .tag-input-container {
-  background: #2d2d2d;
-  border-color: #404040;
+  background: rgba(31, 41, 55, 0.82);
+  border-color: rgba(75, 85, 99, 0.8);
 }
 
 .memos-extension.dark .tag-item {
-  background: #404040;
-  color: #fff;
+  background: rgba(16, 185, 129, 0.26);
+  border-color: rgba(52, 211, 153, 0.5);
+  color: #d1fae5;
 }
 
 .memos-extension.dark .remove-tag {
@@ -326,29 +333,28 @@ const handleDocumentClick = (e) => {
 }
 
 .memos-extension.dark .tag-filter {
-  background: #2d2d2d;
-  color: #fff;
+  color: #e5e7eb;
 }
 
 .memos-extension.dark .tag-dropdown {
-  background: #2d2d2d;
-  border-color: #404040;
+  background: rgba(17, 24, 39, 0.96);
+  border-color: rgba(75, 85, 99, 0.72);
 }
 
 .memos-extension.dark .dropdown-item {
-  color: #fff;
+  color: #e5e7eb;
 }
 
 .memos-extension.dark .dropdown-item:hover {
-  background: #404040;
+  background: rgba(16, 185, 129, 0.2);
 }
 
 .memos-extension.dark .dropdown-item.selected {
-  background: #10B981;
-  color: #fff;
+  background: rgba(16, 185, 129, 0.3);
+  color: #d1fae5;
 }
 
 .memos-extension.dark .check-mark {
-  color: #fff;
+  color: #d1fae5;
 }
-</style> 
+</style>

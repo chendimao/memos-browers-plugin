@@ -1,19 +1,44 @@
-* {
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+}
+
+:root {
+  --mqn-bg-start: #ecfdf5;
+  --mqn-bg-mid: #eff6ff;
+  --mqn-bg-end: #f5f3ff;
+  --mqn-surface: rgba(255, 255, 255, 0.72);
+  --mqn-surface-strong: rgba(255, 255, 255, 0.84);
+  --mqn-border: rgba(255, 255, 255, 0.45);
+  --mqn-border-soft: rgba(148, 163, 184, 0.28);
+  --mqn-text-strong: #111827;
+  --mqn-text: #374151;
+  --mqn-text-soft: #6b7280;
+  --mqn-shadow-sm: 0 8px 20px rgba(15, 23, 42, 0.08);
+  --mqn-shadow-md: 0 14px 28px rgba(15, 23, 42, 0.12);
+  --mqn-shadow-lg: 0 22px 42px rgba(15, 23, 42, 0.14);
+  --mqn-shadow-emerald: 0 14px 28px rgba(16, 185, 129, 0.33);
+  --mqn-radius-xs: 10px;
+  --mqn-radius-sm: 12px;
+  --mqn-radius-md: 16px;
+  --mqn-radius-lg: 20px;
+  --mqn-radius-xl: 24px;
 }
 
 body {
   width: 400px;
   min-height: 300px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: Inter, "PingFang SC", "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif;
+  color: var(--mqn-text-strong);
+  background: linear-gradient(138deg, var(--mqn-bg-start), var(--mqn-bg-mid), var(--mqn-bg-end));
 }
 
-button {
-  outline: none;
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
-
-button:hover {
-  opacity: 0.8;
-} 
