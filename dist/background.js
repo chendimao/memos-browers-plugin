@@ -88,13 +88,15 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       hasFormatting = false;
     }
 
-    // 存储最终内容
-    chrome.storage.local.set({ 
-      'selectedText': finalContent,
-      'sourceUrl': tab.url,
-      'sourceTitle': tab.title,
-      'hasFormatting': hasFormatting
-    });
+    // 存储最终内容，等待写入完成后再打开弹窗
+    await new Promise((resolve) => {
+      chrome.storage.local.set({
+        'selectedText': finalContent,
+        'sourceUrl': tab.url,
+        'sourceTitle': tab.title,
+        'hasFormatting': hasFormatting
+      }, resolve)
+    })
 
     console.log('Memos: 内容已存储', { 
       contentLength: finalContent?.length, 

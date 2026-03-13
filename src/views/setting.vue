@@ -148,24 +148,13 @@
        :disabled="isLoading"
      />
       </div>
-    <div class="setting-item" v-if="localSettings.apiVersion !== 'v24'">
-      <label>{{ t('settings.preferredTags') }}</label>
-      <div class="setting-description">{{ t('settings.preferredTagsDescription') }}</div>
-      <TagSelector
-        v-model="localSettings.preferredTags"
-        :options="tags"
-        :placeholder="t('settings.preferredTagsPlaceholder')"
-        multiple
-        :disabled="isLoading || !localSettings.host || !localSettings.token"
-      />
-    </div>
-
       <h2>{{ t('settings.page') }}</h2>
       <div class="form-group">
       <label>{{ t('settings.defaultView') }}</label>
       <CustomSelect
         v-model="localSettings.defaultView"
         :options="[
+          { value: 'rememberLast', label: t('settings.defaultViewOptions.rememberLast') },
           { value: 'editor', label: t('settings.defaultViewOptions.editor') },
           { value: 'list', label: t('settings.defaultViewOptions.list') }
         ]"
@@ -317,10 +306,15 @@
 
     <div class="form-group">
       <label>{{ t('settings.theme') }}</label>
-      <select v-model="localSettings.theme">
-        <option value="light">{{ t('settings.themeOptions.light') }}</option>
-        <option value="dark">{{ t('settings.themeOptions.dark') }}</option>
-      </select>
+      <CustomSelect
+        v-model="localSettings.theme"
+        :options="[
+          { value: 'system', label: t('settings.themeOptions.system') },
+          { value: 'light', label: t('settings.themeOptions.light') },
+          { value: 'dark', label: t('settings.themeOptions.dark') }
+        ]"
+        :disabled="isLoading"
+      />
     </div>
 
     <div class="form-group">
@@ -357,7 +351,7 @@
     
     <div class="contact-info">
       <h3>{{ t('settings.about.contact') }}</h3>
-      <p><i class="fas fa-envelope"></i> {{ t('settings.about.email') }}：<a href="mailto:admin@chendimao.com">admin@chendimao.com</a></p>
+      <p><i class="fas fa-envelope"></i> {{ t('settings.about.email') }}：<a href="mailto:admin@aiti.xin">admin@aiti.xin</a></p>
       <p><i class="fab fa-qq"></i> {{ t('settings.about.qq') }}：122803265</p>
       <p><i class="fab fa-github"></i> {{ t('settings.about.github') }}：<a href="https://github.com/chendimao/memos-browers-plugin/" target="_blank">chendimao/memos-browers-plugin</a></p>
     </div>
@@ -380,7 +374,6 @@ import { useStorage } from "@vueuse/core";
 import { showToast } from '../utils/toast'
 import { createApiService } from '../api'
 import CustomSelect from '../components/CustomSelect.vue'
-import TagSelector from '../components/TagSelector.vue'
 import { hashPassword } from '../utils/lock.js'
 import { t, getCurrentLanguage, setLanguage, getSupportedLanguages } from '../i18n'
 
@@ -458,6 +451,8 @@ const lockConfirmPassword = ref('')
     const showSettings = ref(props.showSettings);
     const editorRef = ref(props.editorRef); 
 const localSettings = ref({ 
+  apiVersion: 'v18',
+  theme: 'system',
   lockEnabled: false,
   lockPasswordHash: '',
   ...props.settings, 
@@ -467,6 +462,8 @@ watch(() => props.settings, (newVal) => {
     // 只在设置面板关闭时更新本地设置
     if (!showSettings.value) {
         localSettings.value = {
+          apiVersion: 'v18',
+          theme: 'system',
           lockEnabled: false,
           lockPasswordHash: '',
           ...newVal
@@ -492,6 +489,8 @@ watch(() => props.showSettings, (newVal) => {
   // 当设置面板打开时，复制一份原始设置
   if (newVal) {
     localSettings.value = {
+      apiVersion: 'v18',
+      theme: 'system',
       lockEnabled: false,
       lockPasswordHash: '',
       ...props.settings
@@ -809,7 +808,7 @@ const resetSettings = () => {
     localSettings.value = {
       host: '',
       token: '',
-      apiVersion: 'v25',
+      apiVersion: 'v18',
       addSource: true,
       useQuote: true,
       skipDefaultTags: false,
@@ -818,9 +817,9 @@ const resetSettings = () => {
       template: '{content}\n\n来源：[{title}]({url})',
       enableShortcuts: true,
       tagSpaceCount: 1,
-      defaultView: 'editor',
+      defaultView: 'rememberLast',
       showWordCount: true,
-      theme: 'light',
+      theme: 'system',
       width: 550,
       height: 400,
       listMaxHeight: 600,
@@ -841,6 +840,8 @@ const resetSettings = () => {
 const cancelSettings = () => {
   // 恢复原始设置
   localSettings.value = {
+    apiVersion: 'v18',
+    theme: 'system',
     lockEnabled: false,
     lockPasswordHash: '',
     ...props.settings

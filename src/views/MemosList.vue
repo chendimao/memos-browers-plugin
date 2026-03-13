@@ -1495,7 +1495,7 @@ const toggleExpand = (memoId) => {
 .tag-list-container {
   margin-right: 0;
   border: 1px solid var(--mqn-border);
-  border-radius: var(--mqn-radius-lg);
+  border-radius: 0;
   background: var(--mqn-surface);
   backdrop-filter: blur(12px);
   box-shadow: var(--mqn-shadow-sm);
@@ -1601,11 +1601,10 @@ const toggleExpand = (memoId) => {
 
 .memos-container {
   border: 1px solid var(--mqn-border);
-  border-radius: var(--mqn-radius-xl);
+  border-radius: 0;
   background: var(--mqn-surface);
   backdrop-filter: blur(14px);
   box-shadow: var(--mqn-shadow-md);
-  padding: 12px;
 }
 
 .memo-list {

@@ -126,6 +126,7 @@ export const messages = {
       // 页面设置
       defaultView: '默认视图',
       defaultViewOptions: {
+        rememberLast: '记住上次页面',
         editor: '编辑器',
         list: '列表'
       },
@@ -138,6 +139,7 @@ export const messages = {
       showWordCount: '显示字数统计',
       theme: '主题',
       themeOptions: {
+        system: '跟随系统',
         light: '浅色',
         dark: '深色'
       },
@@ -358,6 +360,7 @@ export const messages = {
       // Page settings
       defaultView: 'Default View',
       defaultViewOptions: {
+        rememberLast: 'Remember Last Page',
         editor: 'Editor',
         list: 'List'
       },
@@ -370,6 +373,7 @@ export const messages = {
       showWordCount: 'Show Word Count',
       theme: 'Theme',
       themeOptions: {
+        system: 'Follow System',
         light: 'Light',
         dark: 'Dark'
       },

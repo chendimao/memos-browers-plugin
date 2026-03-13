@@ -1,5 +1,5 @@
 <template>
-  <div class="custom-select" ref="containerRef">
+  <div class="custom-select" :class="{ 'is-open': showDropdown }" ref="containerRef">
     <div 
       class="select-input"
       :class="{ 'is-open': showDropdown }"
@@ -127,6 +127,10 @@ const handleDocumentClick = (e) => {
   z-index: 20;
 }
 
+.custom-select.is-open {
+  z-index: 80;
+}
+
 .select-input {
   width: 100%;
   min-height: 38px;
@@ -183,7 +187,7 @@ const handleDocumentClick = (e) => {
   backdrop-filter: blur(10px);
   max-height: 240px;
   overflow-y: auto;
-  z-index: 30;
+  z-index: 90;
 }
 
 .select-dropdown.dropdown-up {
