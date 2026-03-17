@@ -1,8 +1,9 @@
+const extensionApi = globalThis.browser || globalThis.chrome || null
 const isBrowserNamespace = typeof globalThis.browser !== 'undefined'
-const extensionApi = isBrowserNamespace ? globalThis.browser : globalThis.chrome
+const hasStorageApi = Boolean(extensionApi?.storage?.local)
 
 const getLastError = () => {
-  if (isBrowserNamespace) {
+  if (isBrowserNamespace || !extensionApi) {
     return null
   }
 
@@ -40,9 +41,14 @@ const callApi = (method, ...args) => {
   })
 }
 
+const getStorageArea = () => {
+  return extensionApi?.storage?.local || null
+}
+
 export {
   extensionApi,
-  callApi
+  callApi,
+  hasStorageApi
 }
 
 export const hasExtensionMethod = (method) => {
@@ -50,13 +56,16 @@ export const hasExtensionMethod = (method) => {
 }
 
 export const storageLocalGet = (keys) => {
-  return callApi(extensionApi.storage?.local?.get.bind(extensionApi.storage.local), keys)
+  const storageArea = getStorageArea()
+  return callApi(storageArea?.get?.bind(storageArea), keys)
 }
 
 export const storageLocalSet = (items) => {
-  return callApi(extensionApi.storage?.local?.set.bind(extensionApi.storage.local), items)
+  const storageArea = getStorageArea()
+  return callApi(storageArea?.set?.bind(storageArea), items)
 }
 
 export const storageLocalRemove = (keys) => {
-  return callApi(extensionApi.storage?.local?.remove.bind(extensionApi.storage.local), keys)
+  const storageArea = getStorageArea()
+  return callApi(storageArea?.remove?.bind(storageArea), keys)
 }

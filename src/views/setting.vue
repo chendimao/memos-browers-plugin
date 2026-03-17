@@ -370,12 +370,11 @@
 
 <script lang="ts" setup>
 import { ref, computed, nextTick, watch } from 'vue';
-import { useStorage } from "@vueuse/core";
 import { showToast } from '../utils/toast'
 import { createApiService } from '../api'
 import CustomSelect from '../components/CustomSelect.vue'
 import { hashPassword } from '../utils/lock.js'
-import { storageLocalSet } from '../utils/extensionApi'
+import { appStorageSet } from '../utils/appStorage'
 import { t, getCurrentLanguage, setLanguage, getSupportedLanguages } from '../i18n'
 
     const props = defineProps({
@@ -635,7 +634,7 @@ const saveSettings = async () => {
     console.log('Memos: preserveFormatting值', settingsToSave.preserveFormatting);
     
     // 使用 Promise 包装确保写入完成
-    await storageLocalSet({ 'memos-settings': settingsToSave })
+    await appStorageSet({ 'memos-settings': settingsToSave })
     // 更新父组件设置
     emits('update:settings', settingsToSave)
     

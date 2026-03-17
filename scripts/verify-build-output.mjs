@@ -3,8 +3,9 @@ import path from 'path'
 import process from 'process'
 
 const distRoot = path.resolve(process.cwd(), 'dist')
-const targetNames = ['chrome', 'firefox', 'safari']
-const requiredFiles = [
+const extensionTargets = ['chrome', 'firefox', 'safari']
+const webTarget = 'web'
+const extensionRequiredFiles = [
   'manifest.json',
   'background.js',
   'content.js',
@@ -15,6 +16,7 @@ const requiredFiles = [
   'assets/icons/icon48.png',
   'assets/icons/icon128.png'
 ]
+const webRequiredFiles = ['index.html']
 const requiredManifestKeys = [
   'manifest_version',
   'name',
@@ -41,7 +43,7 @@ function getTargetDir(targetName) {
   return path.join(distRoot, targetName)
 }
 
-function verifyTargetFiles(targetName) {
+function verifyRequiredFiles(targetName, requiredFiles) {
   const targetDir = getTargetDir(targetName)
   assert(fs.existsSync(targetDir), `缺少目录：dist/${targetName}`)
 
@@ -52,7 +54,7 @@ function verifyTargetFiles(targetName) {
 }
 
 function verifyManifestCapabilities(manifests) {
-  targetNames.forEach((targetName) => {
+  extensionTargets.forEach((targetName) => {
     const manifest = manifests[targetName]
 
     requiredManifestKeys.forEach((key) => {
@@ -68,14 +70,9 @@ function verifyManifestCapabilities(manifests) {
     const chromeValue = JSON.stringify(chromeManifest[key])
     const firefoxValue = JSON.stringify(firefoxManifest[key])
     const safariValue = JSON.stringify(safariManifest[key])
-    assert(
-      chromeValue === firefoxValue,
-      `manifest 关键字段不一致：${key}`
-    )
-    assert(
-      chromeValue === safariValue,
-      `safari manifest 关键字段不一致：${key}`
-    )
+
+    assert(chromeValue === firefoxValue, `manifest 关键字段不一致：${key}`)
+    assert(chromeValue === safariValue, `safari manifest 关键字段不一致：${key}`)
   })
 
   assert(
@@ -91,6 +88,7 @@ function verifyManifestCapabilities(manifests) {
       firefoxManifest.browser_specific_settings.gecko.id.length > 0,
     'firefox manifest 必须包含 browser_specific_settings.gecko.id'
   )
+
   const requiredDataCollection = firefoxManifest.browser_specific_settings?.gecko?.data_collection_permissions?.required
   assert(
     Array.isArray(requiredDataCollection) && requiredDataCollection.length > 0,
@@ -98,20 +96,30 @@ function verifyManifestCapabilities(manifests) {
   )
 
   assert(
-    'background' in safariManifest,
-    'safari manifest 必须包含 background'
-  )
-  assert(
     'service_worker' in (safariManifest.background || {}),
     'safari manifest 必须包含 background.service_worker'
   )
 }
 
+function verifyWebOutput() {
+  verifyRequiredFiles(webTarget, webRequiredFiles)
+
+  const assetsDir = path.join(getTargetDir(webTarget), 'assets')
+  assert(fs.existsSync(assetsDir), '缺少目录：dist/web/assets')
+
+  const assetFiles = fs.readdirSync(assetsDir)
+  assert(assetFiles.some((fileName) => fileName.endsWith('.js')), 'dist/web/assets 中缺少 JS 资源')
+  assert(assetFiles.some((fileName) => fileName.endsWith('.css')), 'dist/web/assets 中缺少 CSS 资源')
+}
+
 try {
-  targetNames.forEach(verifyTargetFiles)
+  extensionTargets.forEach((targetName) => {
+    verifyRequiredFiles(targetName, extensionRequiredFiles)
+  })
+  verifyWebOutput()
 
   const manifests = Object.fromEntries(
-    targetNames.map((targetName) => [
+    extensionTargets.map((targetName) => [
       targetName,
       readJson(path.join(getTargetDir(targetName), 'manifest.json'))
     ])
