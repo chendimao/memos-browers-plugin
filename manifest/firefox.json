@@ -1,4 +1,16 @@
 {
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "memos-quick-note@chendimao.github.io",
+      "data_collection_permissions": {
+        "required": [
+          "authenticationInfo",
+          "websiteActivity",
+          "websiteContent"
+        ]
+      }
+    }
+  },
   "background": {
     "scripts": [
       "background.js"

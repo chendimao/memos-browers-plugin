@@ -80,6 +80,16 @@ function verifyManifestCapabilities(manifests) {
     Array.isArray(firefoxManifest.background?.scripts),
     'firefox manifest 必须包含 background.scripts'
   )
+  assert(
+    typeof firefoxManifest.browser_specific_settings?.gecko?.id === 'string' &&
+      firefoxManifest.browser_specific_settings.gecko.id.length > 0,
+    'firefox manifest 必须包含 browser_specific_settings.gecko.id'
+  )
+  const requiredDataCollection = firefoxManifest.browser_specific_settings?.gecko?.data_collection_permissions?.required
+  assert(
+    Array.isArray(requiredDataCollection) && requiredDataCollection.length > 0,
+    'firefox manifest 必须包含 browser_specific_settings.gecko.data_collection_permissions.required'
+  )
 }
 
 try {
