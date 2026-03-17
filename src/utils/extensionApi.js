@@ -45,6 +45,10 @@ export {
   callApi
 }
 
+export const hasExtensionMethod = (method) => {
+  return typeof method === 'function'
+}
+
 export const storageLocalGet = (keys) => {
   return callApi(extensionApi.storage?.local?.get.bind(extensionApi.storage.local), keys)
 }

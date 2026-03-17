@@ -7,8 +7,8 @@ const rootDir = process.cwd()
 const distDir = path.join(rootDir, 'dist')
 const tempDir = path.join(rootDir, '.build', 'popup')
 const targetArg = process.argv[2] || 'all'
-const targetNames = targetArg === 'all' ? ['chrome', 'firefox'] : [targetArg]
-const validTargets = new Set(['all', 'chrome', 'firefox'])
+const targetNames = targetArg === 'all' ? ['chrome', 'firefox', 'safari'] : [targetArg]
+const validTargets = new Set(['all', 'chrome', 'firefox', 'safari'])
 const staticFiles = ['background.js', 'content.js']
 
 if (!validTargets.has(targetArg)) {
