@@ -2,14 +2,20 @@ import fs from 'fs'
 import path from 'path'
 import process from 'process'
 import { build as viteBuild } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
 
 const rootDir = process.cwd()
 const distDir = path.join(rootDir, 'dist')
-const tempDir = path.join(rootDir, '.build', 'popup')
+const buildRootDir = path.join(rootDir, '.build')
 const targetArg = process.argv[2] || 'all'
-const targetNames = targetArg === 'all' ? ['chrome', 'firefox', 'safari'] : [targetArg]
-const validTargets = new Set(['all', 'chrome', 'firefox', 'safari'])
-const staticFiles = ['background.js', 'content.js']
+const extensionTargets = ['chrome', 'firefox', 'safari']
+const webTarget = 'web'
+const targetNames = targetArg === 'all'
+  ? [...extensionTargets, webTarget]
+  : [targetArg]
+const validTargets = new Set(['all', ...extensionTargets, webTarget])
+const extensionStaticFiles = ['background.js', 'content.js']
 
 if (!validTargets.has(targetArg)) {
   console.error(`不支持的构建目标：${targetArg}`)
@@ -64,22 +70,43 @@ function mergeManifest(baseManifest, targetManifest) {
   }
 }
 
-async function buildPopupAssets() {
+async function buildAppAssets(targetName) {
+  const isWebTarget = targetName === webTarget
+  const htmlFile = isWebTarget ? 'index.html' : 'popup.html'
+  const tempDir = path.join(buildRootDir, targetName)
+
   removeDir(tempDir)
 
   await viteBuild({
-    configFile: path.join(rootDir, 'vite.config.js'),
+    configFile: false,
+    plugins: [vue()],
+    base: './',
+    define: {
+      __BUILD_TARGET__: JSON.stringify(targetName)
+    },
     build: {
       outDir: tempDir,
-      emptyOutDir: true
+      emptyOutDir: true,
+      rollupOptions: {
+        input: {
+          [isWebTarget ? 'index' : 'popup']: resolve(rootDir, htmlFile)
+        },
+        output: {
+          entryFileNames: 'assets/[name].js',
+          chunkFileNames: 'assets/[name].js',
+          assetFileNames: 'assets/[name].[ext]'
+        }
+      }
     }
   })
+
+  return tempDir
 }
 
-function copySharedAssets(targetDir) {
-  copyDir(tempDir, targetDir)
+function copyExtensionAssets(sourceDir, targetDir) {
+  copyDir(sourceDir, targetDir)
 
-  staticFiles.forEach((fileName) => {
+  extensionStaticFiles.forEach((fileName) => {
     copyFileToTarget(path.join(rootDir, fileName), path.join(targetDir, fileName))
   })
 
@@ -103,17 +130,28 @@ function writeManifest(targetName, targetDir) {
   fs.writeFileSync(manifestPath, `${JSON.stringify(finalManifest, null, 2)}\n`, 'utf8')
 }
 
+async function buildTarget(targetName) {
+  const targetDir = path.join(distDir, targetName)
+  const sourceDir = await buildAppAssets(targetName)
+
+  removeDir(targetDir)
+
+  if (targetName === webTarget) {
+    copyDir(sourceDir, targetDir)
+  } else {
+    copyExtensionAssets(sourceDir, targetDir)
+    writeManifest(targetName, targetDir)
+  }
+
+  console.log(`已生成 ${targetName} 构建产物：${path.relative(rootDir, targetDir)}`)
+}
+
 async function main() {
   ensureDir(distDir)
-  await buildPopupAssets()
 
-  targetNames.forEach((targetName) => {
-    const targetDir = path.join(distDir, targetName)
-    removeDir(targetDir)
-    copySharedAssets(targetDir)
-    writeManifest(targetName, targetDir)
-    console.log(`已生成 ${targetName} 扩展包：${path.relative(rootDir, targetDir)}`)
-  })
+  for (const targetName of targetNames) {
+    await buildTarget(targetName)
+  }
 }
 
 main().catch((error) => {

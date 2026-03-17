@@ -28,12 +28,34 @@
   --mqn-radius-xl: 24px;
 }
 
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
 body {
-  width: 400px;
-  min-height: 300px;
   font-family: Inter, "PingFang SC", "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif;
   color: var(--mqn-text-strong);
   background: linear-gradient(138deg, var(--mqn-bg-start), var(--mqn-bg-mid), var(--mqn-bg-end));
+}
+
+html[data-app-target='extension'],
+html[data-app-target='extension'] body {
+  width: 400px;
+  min-height: 300px;
+}
+
+html[data-app-target='web'] body {
+  width: auto;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+
+html[data-app-target='web'] #app {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 button,

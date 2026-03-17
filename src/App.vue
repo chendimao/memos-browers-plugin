@@ -239,7 +239,9 @@ import TagSelector from './components/TagSelector.vue'
 import CustomSelect from './components/CustomSelect.vue'
 import MemosList from './views/MemosList.vue'
 import { verifyPassword } from './utils/lock.js'
-import { extensionApi, storageLocalGet, storageLocalRemove } from './utils/extensionApi'
+import { extensionApi } from './utils/extensionApi'
+import { appStorageGet, appStorageRemove } from './utils/appStorage'
+import { isExtensionTarget, isWebTarget } from './utils/runtimeTarget'
 import { t } from './i18n'
 
 // 定义 emit
@@ -304,6 +306,9 @@ const settings = useStorage('memos-settings', {
 const persistedLastPage = useStorage<PopupPage>('memos-last-page', 'editor')
 const persistedLockState = useStorage('memos-lock-state', false)
 const isLocked = ref(Boolean(persistedLockState.value))
+const pageTitle = computed(() => {
+  return isWebTarget ? 'Memos Quick Note Web' : 'Memos Quick Note'
+})
 
 const hasValue = (value) => typeof value === 'string' && value.trim() !== ''
 const isConfigured = computed(() => hasValue(settings.value.host) && hasValue(settings.value.token))
@@ -510,10 +515,29 @@ const currentView = ref<'editor' | 'list'>(preferredPage === 'list' ? 'list' : '
 
 // 计算属性来处理容器样式
 const containerStyle = computed(() => {
-  const baseStyle = {
-    width: settings.value.width + 'px'
+  const baseStyle: Record<string, string> = isWebTarget
+    ? {
+        width: '100%',
+        maxWidth: settings.value.width + 'px'
+      }
+    : {
+        width: settings.value.width + 'px'
+      }
+
+  // Web 版本作为普通页面展示，保持卡片宽度但不强制锁死弹窗高度。
+  if (isWebTarget) {
+    if (currentView.value === 'list') {
+      baseStyle.minHeight = settings.value.listMaxHeight + 'px'
+    } else if (showSettings.value) {
+      baseStyle.minHeight = settings.value.settingHeight + 'px'
+    } else {
+      baseStyle.minHeight = settings.value.height + 'px'
+      baseStyle.height = 'auto'
+    }
+
+    return baseStyle
   }
-  
+
   // 根据不同视图设置不同的高度
   if (currentView.value === 'list') {
     baseStyle.height = Math.min(settings.value.listMaxHeight, MAX_POPUP_HEIGHT) + 'px'
@@ -524,7 +548,7 @@ const containerStyle = computed(() => {
     baseStyle.minHeight = Math.min(settings.value.height, MAX_POPUP_HEIGHT) + 'px'
     baseStyle.height = 'auto'
   }
-  
+
   return baseStyle
 })
 
@@ -635,6 +659,7 @@ const fetchRemoteTags = async () => {
 
 // 生命周期钩子
 onMounted(() => {
+  document.title = pageTitle.value
   settings.value.apiVersion ||= 'v18'
   settings.value.theme ||= 'system'
 
@@ -655,49 +680,50 @@ onMounted(() => {
   // 设置默认可见性
   visibility.value = settings.value.defaultVisibility
 
-  // 检查是否有存储的选中文本
-  storageLocalGet(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting']).then((result) => {
-    if (result.selectedText) {
-      content.value = formatContent(result.selectedText, result.sourceUrl, result.sourceTitle)
-      storageLocalRemove(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting'])
-      // 切换到编辑器视图
-      showSettings.value = false
-      currentView.value = 'editor'
-      focusEditor()
-      
-      // 如果内容包含格式，添加用户提示
-      if (result.hasFormatting) {
-        console.log('Memos: 已保留原文的格式样式')
-        // 可以在这里添加一个临时的视觉提示
-        showFormatPreservedNotification()
-      } else {
-        console.log('Memos: 使用纯文本模式')
-      }
-    }
-  }).catch((error) => {
-    console.error('读取选中文本失败:', error)
-  })
+  if (isExtensionTarget) {
+    // 检查是否有存储的选中文本
+    appStorageGet(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting']).then((result) => {
+      if (result.selectedText) {
+        content.value = formatContent(result.selectedText, result.sourceUrl, result.sourceTitle)
+        appStorageRemove(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting'])
+        // 切换到编辑器视图
+        showSettings.value = false
+        currentView.value = 'editor'
+        focusEditor()
 
-  // 监听存储变化
-  extensionApi.storage.onChanged.addListener((changes) => {
-    if (changes.selectedText && changes.selectedText.newValue) {
-      content.value = formatContent(
-        changes.selectedText.newValue,
-        changes.sourceUrl?.newValue,
-        changes.sourceTitle?.newValue
-      )
-      // 切换到编辑器视图
-      showSettings.value = false
-      currentView.value = 'editor'
-      focusEditor()
-      
-      // 如果内容包含格式，添加提示
-      if (changes.hasFormatting?.newValue) {
-        console.log('Memos: 已保留原文的格式样式')
-        showFormatPreservedNotification()
+        // 如果内容包含格式，添加用户提示
+        if (result.hasFormatting) {
+          console.log('Memos: 已保留原文的格式样式')
+          showFormatPreservedNotification()
+        } else {
+          console.log('Memos: 使用纯文本模式')
+        }
       }
-    }
-  })
+    }).catch((error) => {
+      console.error('读取选中文本失败:', error)
+    })
+
+    // 监听存储变化
+    extensionApi?.storage?.onChanged?.addListener((changes) => {
+      if (changes.selectedText && changes.selectedText.newValue) {
+        content.value = formatContent(
+          changes.selectedText.newValue,
+          changes.sourceUrl?.newValue,
+          changes.sourceTitle?.newValue
+        )
+        // 切换到编辑器视图
+        showSettings.value = false
+        currentView.value = 'editor'
+        focusEditor()
+
+        // 如果内容包含格式，添加提示
+        if (changes.hasFormatting?.newValue) {
+          console.log('Memos: 已保留原文的格式样式')
+          showFormatPreservedNotification()
+        }
+      }
+    })
+  }
 
   // 添加快捷键支持
   if (settings.value.enableShortcuts) {
@@ -1754,6 +1780,14 @@ const handleEditMemo = (memo) => {
 }
 
 const applyPopupDimensions = () => {
+  if (!isExtensionTarget) {
+    document.documentElement.style.removeProperty('width')
+    document.documentElement.style.removeProperty('height')
+    document.body.style.removeProperty('width')
+    document.body.style.removeProperty('height')
+    return
+  }
+
   const width = Math.min(settings.value.width, MAX_POPUP_WIDTH)
   let height
 
@@ -1782,7 +1816,9 @@ const updateEditorHeight = () => {
       const editorContainer = document.querySelector('.editor-container') as HTMLElement | null
       if (editorContainer) {
         // 使用设置中的高度作为最小高度，避免工具区换行时底部内容被截断
-        const height = Math.min(settings.value.height, MAX_POPUP_HEIGHT)
+        const height = isExtensionTarget
+          ? Math.min(settings.value.height, MAX_POPUP_HEIGHT)
+          : settings.value.height
 
         // 更新所有相关元素的高度
         requestAnimationFrame(() => {
