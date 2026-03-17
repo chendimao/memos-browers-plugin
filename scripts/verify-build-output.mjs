@@ -3,7 +3,7 @@ import path from 'path'
 import process from 'process'
 
 const distRoot = path.resolve(process.cwd(), 'dist')
-const targetNames = ['chrome', 'firefox']
+const targetNames = ['chrome', 'firefox', 'safari']
 const requiredFiles = [
   'manifest.json',
   'background.js',
@@ -62,13 +62,19 @@ function verifyManifestCapabilities(manifests) {
 
   const chromeManifest = manifests.chrome
   const firefoxManifest = manifests.firefox
+  const safariManifest = manifests.safari
 
   requiredManifestKeys.forEach((key) => {
     const chromeValue = JSON.stringify(chromeManifest[key])
     const firefoxValue = JSON.stringify(firefoxManifest[key])
+    const safariValue = JSON.stringify(safariManifest[key])
     assert(
       chromeValue === firefoxValue,
       `manifest 关键字段不一致：${key}`
+    )
+    assert(
+      chromeValue === safariValue,
+      `safari manifest 关键字段不一致：${key}`
     )
   })
 
@@ -89,6 +95,15 @@ function verifyManifestCapabilities(manifests) {
   assert(
     Array.isArray(requiredDataCollection) && requiredDataCollection.length > 0,
     'firefox manifest 必须包含 browser_specific_settings.gecko.data_collection_permissions.required'
+  )
+
+  assert(
+    'background' in safariManifest,
+    'safari manifest 必须包含 background'
+  )
+  assert(
+    'service_worker' in (safariManifest.background || {}),
+    'safari manifest 必须包含 background.service_worker'
   )
 }
 

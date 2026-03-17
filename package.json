@@ -7,6 +7,7 @@
     "build": "node scripts/build-extension.mjs all",
     "build:chrome": "node scripts/build-extension.mjs chrome",
     "build:firefox": "node scripts/build-extension.mjs firefox",
+    "build:safari": "node scripts/build-extension.mjs safari",
     "verify:build": "node scripts/verify-build-output.mjs",
     "serve": "vite preview"
   },
