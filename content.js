@@ -1,4 +1,7 @@
 // Content script for getting selected HTML content
+const extensionApi = typeof globalThis.browser !== 'undefined'
+  ? globalThis.browser
+  : globalThis.chrome
 
 /**
  * 获取选中内容的HTML
@@ -257,7 +260,7 @@ function htmlToMarkdown(html) {
 }
 
 // 监听来自background script的消息
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+extensionApi.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getSelection') {
     const selectionData = getSelectionContent();
     
