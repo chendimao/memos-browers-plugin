@@ -239,6 +239,7 @@ import TagSelector from './components/TagSelector.vue'
 import CustomSelect from './components/CustomSelect.vue'
 import MemosList from './views/MemosList.vue'
 import { verifyPassword } from './utils/lock.js'
+import { extensionApi, storageLocalGet, storageLocalRemove } from './utils/extensionApi'
 import { t } from './i18n'
 
 // 定义 emit
@@ -655,10 +656,10 @@ onMounted(() => {
   visibility.value = settings.value.defaultVisibility
 
   // 检查是否有存储的选中文本
-  chrome.storage.local.get(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting'], (result) => {
+  storageLocalGet(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting']).then((result) => {
     if (result.selectedText) {
       content.value = formatContent(result.selectedText, result.sourceUrl, result.sourceTitle)
-      chrome.storage.local.remove(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting'])
+      storageLocalRemove(['selectedText', 'sourceUrl', 'sourceTitle', 'hasFormatting'])
       // 切换到编辑器视图
       showSettings.value = false
       currentView.value = 'editor'
@@ -673,10 +674,12 @@ onMounted(() => {
         console.log('Memos: 使用纯文本模式')
       }
     }
+  }).catch((error) => {
+    console.error('读取选中文本失败:', error)
   })
 
   // 监听存储变化
-  chrome.storage.onChanged.addListener((changes) => {
+  extensionApi.storage.onChanged.addListener((changes) => {
     if (changes.selectedText && changes.selectedText.newValue) {
       content.value = formatContent(
         changes.selectedText.newValue,

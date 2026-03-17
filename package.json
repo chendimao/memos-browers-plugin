@@ -4,7 +4,10 @@
   "description": "An Edge extension for Memos using Vue 3, supports v0.18/v0.24/v0.25",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build-extension.mjs all",
+    "build:chrome": "node scripts/build-extension.mjs chrome",
+    "build:firefox": "node scripts/build-extension.mjs firefox",
+    "verify:build": "node scripts/verify-build-output.mjs",
     "serve": "vite preview"
   },
   "dependencies": {
