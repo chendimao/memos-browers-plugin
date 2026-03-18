@@ -31,7 +31,7 @@ jobs:
       - name: Validate tag version
         run: |
           TAG="${GITHUB_REF_NAME}"
-          PACKAGE_VERSION="$(node -p \"require('./package.json').version\")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
           NORMALIZED_TAG="${TAG#v}"
 
           if [ "${NORMALIZED_TAG}" != "${PACKAGE_VERSION}" ]; then
