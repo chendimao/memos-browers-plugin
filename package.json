@@ -9,6 +9,7 @@
     "build:firefox": "node scripts/build-extension.mjs firefox",
     "build:safari": "node scripts/build-extension.mjs safari",
     "build:web": "node scripts/build-extension.mjs web",
+    "build:release-assets": "node scripts/package-release-assets.mjs",
     "verify:build": "node scripts/verify-build-output.mjs",
     "serve": "vite preview"
   },

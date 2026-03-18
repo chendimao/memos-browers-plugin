@@ -73,6 +73,36 @@ npm run build:web
 npm run verify:build
 ```
 
+## Automated Releases
+
+This repository includes two GitHub Actions workflows:
+
+- `CI`: runs on pushes to `master` and on pull requests, and only validates build output
+- `Release`: runs when a version tag such as `1.2.9` or `v1.2.9` is pushed, then builds and publishes a GitHub Release automatically
+
+### Release Steps
+
+1. Update the version in `package.json`
+2. Commit and push your changes to `master`
+3. Create a version tag, for example `git tag 1.2.9` or `git tag v1.2.9`
+4. Push the tag, for example `git push origin 1.2.9` or `git push origin v1.2.9`
+5. Wait for GitHub Actions to create the Release and upload the assets
+
+### Uploaded Release Assets
+
+- `memos-chrome-v<version>.zip`
+- `memos-firefox-v<version>.zip`
+- `memos-safari-v<version>.zip`
+- `memos-web-v<version>.zip`
+
+### Recommended Local Validation Before Releasing
+
+```bash
+npm run build
+npm run verify:build
+npm run build:release-assets
+```
+
 ## Installation / Testing
 
 ### Chrome / Edge
