@@ -1,8 +1,14 @@
 # Memos Quick Note
 
-An Edge extension for quickly adding notes to Memos. This extension allows you to quickly capture ideas, save web content, and manage your knowledge with Memos.
+A browser extension for quickly adding notes to Memos. This extension allows you to capture ideas, save web content, and manage your knowledge with Memos.
 
 [中文文档](README.md)
+
+> Supports `Edge` / `Chrome` / `Firefox` / `Safari` / `Web`
+>
+> - `Edge`: install from [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/memos/ldhakmjejmcfahjbjcbfnnagmkkakgdd)
+> - `Chrome` / `Firefox` / `Safari`: install offline from local build output
+> - `Web`: build `dist/web` and deploy it to your own server
 
 ## Features
 
@@ -15,14 +21,14 @@ An Edge extension for quickly adding notes to Memos. This extension allows you t
 - Multi-language support
 - List view for managing memos
 - Settings panel for customization
+- Production builds for Chrome / Edge, Firefox, and Safari testing on macOS
 
-## Installation
+## Browser Targets
 
-1. Download the latest release from the [Releases](https://github.com/yourusername/memos-plugin/releases) page
-2. Unzip the downloaded file
-3. Open Microsoft Edge and go to the extensions page
-4. Enable "Developer mode"
-5. Click "Load unpacked" and select the unzipped folder
+- Chrome / Edge: load `dist/chrome`
+- Firefox: load `dist/firefox`
+- Safari: temporary local testing on macOS via `dist/safari`
+- HTML / Web: deploy `dist/web` to your own static server
 
 ## Usage
 
@@ -54,9 +60,73 @@ npm install
 # Start development server
 npm run dev
 
-# Build for production
+# Build all browser targets
 npm run build
+
+# Build a single target
+npm run build:chrome
+npm run build:firefox
+npm run build:safari
+npm run build:web
+
+# Verify build output
+npm run verify:build
 ```
+
+## Installation / Testing
+
+### Chrome / Edge
+
+1. Run `npm run build:chrome`
+2. Open the browser extensions page
+3. Enable Developer Mode
+4. Click "Load unpacked"
+5. Select `dist/chrome`
+
+### Firefox
+
+1. Run `npm run build:firefox`
+2. Open the Firefox debugging page for extensions
+3. Temporarily load an add-on
+4. Select `dist/firefox/manifest.json`
+
+### Safari
+
+1. Run `npm run build:safari`
+2. Open Safari on macOS
+3. Enable Safari development-related options
+4. Temporarily install the extension folder
+5. Select `dist/safari`
+
+### HTML / Web
+
+1. Run `npm run build:web`
+2. Upload the files in `dist/web` to your static hosting directory
+3. Open the deployed URL in your browser
+4. On first launch, fill in your Memos Host and Token in Settings
+
+## Web Version Scope
+
+### Included in the Web build
+
+- Manual memo input
+- Tag selection and auto-completion
+- File / image upload
+- Settings persistence
+- Memo list viewing and editing
+- Theme, language, and layout settings
+
+### Not included in the Web build
+
+- Right-click selected text injection from webpages
+- Background-script-driven extension interactions
+- Content script injection
+- Extension popup entry behavior
+
+### Web Deployment Notes
+
+- If your web app and Memos service are on different domains, make sure your server allows CORS
+- HTTPS is recommended to avoid browser restrictions around upload, authentication, or cross-origin requests
 
 ## Contributing
 
@@ -68,4 +138,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- Email: your.email@example.com 
+- Email: admin@aiti.xin
