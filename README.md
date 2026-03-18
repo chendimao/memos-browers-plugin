@@ -149,6 +149,36 @@ dist/web
 npm run verify:build
 ```
 
+## 自动发布
+
+当前仓库包含两套 GitHub Actions 工作流：
+
+- `CI`：在推送到 `master` 或创建 / 更新 Pull Request 时执行，只做构建与产物校验
+- `Release`：在推送版本标签（如 `1.2.9` 或 `v1.2.9`）时执行，自动构建并发布 GitHub Release
+
+### 发布步骤
+
+1. 更新 `package.json` 中的版本号
+2. 提交并推送代码到 `master`
+3. 创建版本标签，例如 `git tag 1.2.9` 或 `git tag v1.2.9`
+4. 推送标签，例如 `git push origin 1.2.9` 或 `git push origin v1.2.9`
+5. 等待 GitHub Actions 自动创建 Release 并上传发布包
+
+### 自动上传的发布资产
+
+- `memos-chrome-v<版本号>.zip`
+- `memos-firefox-v<版本号>.zip`
+- `memos-safari-v<版本号>.zip`
+- `memos-web-v<版本号>.zip`
+
+### 发布前本地验证
+
+```bash
+npm run build
+npm run verify:build
+npm run build:release-assets
+```
+
 ## 安装与测试
 
 ### Chrome / Edge
