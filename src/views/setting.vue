@@ -21,7 +21,8 @@
           { value: 'v18', label: '0.18' },
           { value: 'v24', label: '0.24' },
           { value: 'v25', label: '0.25' },
-          { value: 'v26', label: '0.26' }
+          { value: 'v26', label: '0.26' },
+          { value: 'v28', label: '0.28' }
         ]"
         :disabled="isLoading"
       />
@@ -418,7 +419,7 @@ const fetchTags = async () => {
         return acc
       }, {})
     } else {
-      // v24/v25/v26 返回字符串数组
+      // v24/v25/v26/v28 返回字符串数组
       tags.value = Array.isArray(data) ? data : []
       tagCounts.value = (Array.isArray(data) ? data : []).reduce((acc, tag) => {
         const tagName = typeof tag === 'string' ? tag : (tag.name || tag)

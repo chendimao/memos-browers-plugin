@@ -2,10 +2,11 @@ import { v18Api } from './v18'
 import { v24Api } from './v24'
 import { v25Api } from './v25'
 import { v26Api } from './v26'
+import { v28Api } from './v28'
 
 /**
  * API 服务工厂
- * @param {string} version - API 版本 ('v18', 'v24' 或 'v25')
+ * @param {string} version - API 版本 ('v18', 'v24', 'v25', 'v26', 'v28')
  * @returns {Object} API 服务实例
  */
 export const createApiService = (version) => {
@@ -13,7 +14,8 @@ export const createApiService = (version) => {
     v18: v18Api,
     v24: v24Api,
     v25: v25Api,
-    v26: v26Api
+    v26: v26Api,
+    v28: v28Api
   }
 
   if (!apiMap[version]) {
@@ -32,7 +34,8 @@ export const getSupportedVersions = () => {
     v18: '0.18',
     v24: '0.24',
     v25: '0.25',
-    v26: '0.26'
+    v26: '0.26',
+    v28: '0.28'
   })
 }
 
@@ -46,7 +49,8 @@ export const getVersionDisplayName = (version) => {
     v18: '0.18',
     v24: '0.24',
     v25: '0.25',
-    v26: '0.26'
+    v26: '0.26',
+    v28: '0.28'
   }
   return versionMap[version] || version
 }

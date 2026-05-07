@@ -111,7 +111,7 @@
             </div>
             
             <!-- 资源列表展示 -->
-            <div v-if="(settings.apiVersion === 'v24' || settings.apiVersion === 'v25' || settings.apiVersion === 'v26') && memo.resources && memo.resources.length > 0" class="resources-container">
+            <div v-if="(settings.apiVersion === 'v24' || settings.apiVersion === 'v25' || settings.apiVersion === 'v26' || settings.apiVersion === 'v28' || settings.apiVersion === 'v28') && memo.resources && memo.resources.length > 0" class="resources-container">
               <div class="resources-list">
                 <!-- 图片资源 -->
                 <div v-for="resource in memo.resources.filter(r => r.type.startsWith('image/'))" 
@@ -269,24 +269,39 @@ const fetchMemos = async () => {
     const offset = 0 // 重置 offset
     page.value = 1 // 重置页码
     hasMore.value = true // 重置加载更多状态
-    
+
+    // 构建请求参数
+    const params = {
+      offset,
+      limit,
+      visibility: props.settings.visibilityFilter,
+      content: searchQuery.value,
+      tag: selectedTag.value
+    }
+
+    console.log('v28 fetchMemos 调试 - 请求参数:', {
+      apiVersion: props.settings.apiVersion,
+      host: props.settings.host,
+      token: props.settings.token ? '***' : 'empty',
+      params
+    })
+
     const response = await api.getMemos(
       props.settings.host,
       props.settings.token,
-      {
-        offset,
-        limit,
-        visibility: props.settings.visibilityFilter,
-        content: searchQuery.value,
-        tag: selectedTag.value
-      }
+      params
     )
 
+    console.log('v28 fetchMemos 调试 - 响应状态:', response.status, 'OK:', response.ok)
+
     if (!response.ok) {
-      throw new Error('获取备忘录失败')
+      const errorText = await response.text().catch(() => 'unknown error')
+      console.error('v28 fetchMemos 调试 - 错误响应:', errorText)
+      throw new Error(`获取备忘录失败：${response.status} ${response.statusText}`)
     }
 
     let data = await response.json()
+    console.log('v28 fetchMemos 调试 - 原始数据:', data)
     
     if (props.settings.apiVersion === 'v24') {
       nextPageToken.value = data.nextPageToken;
@@ -301,12 +316,12 @@ const fetchMemos = async () => {
           console.warn('获取资源失败:', memo.name, error)
         }
       }))
-    } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
-      // v25/v26 版本数据处理
+    } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26' || props.settings.apiVersion === 'v28') {
+      // v25/v26/v28 版本数据处理
       nextPageToken.value = data.nextPageToken || data.next_page_token || ''
       data = data.memos || []
-      
-      // v25/v26 字段映射和处理
+
+      // v25/v26/v28 字段映射和处理
       for (const memo of data) {
         // 确保时间字段兼容性
         if (memo.createTime && !memo.createdTs) {
@@ -318,7 +333,7 @@ const fetchMemos = async () => {
         if (memo.updateTime && !memo.updatedTs) {
           memo.updatedTs = new Date(memo.updateTime).getTime()
         }
-        
+
         // 处理附件
         if (memo.attachments && memo.attachments.length > 0) {
           try {
@@ -336,8 +351,8 @@ const fetchMemos = async () => {
       }
     }
     
-    // 客户端标签过滤（v25/v26）
-    if ((props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') && selectedTag.value) {
+    // 客户端标签过滤（v25/v26/v28）
+    if ((props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26' || props.settings.apiVersion === 'v28') && selectedTag.value) {
       data = data.filter(memo => {
         return memo.tags && memo.tags.includes(selectedTag.value)
       })
@@ -345,7 +360,7 @@ const fetchMemos = async () => {
     }
     
     // 检查是否还有更多数据
-    if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
+    if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26' || props.settings.apiVersion === 'v28') {
       // v25/v26：如果返回的数据量等于 limit，假设还有更多数据
       if (data.length >= limit) {
         hasMore.value = true
@@ -536,12 +551,12 @@ const loadMore = async () => {
           console.warn('获取资源失败:', memo.name, error)
         }
       }))
-    } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
-      // v25/v26 版本数据处理
+    } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26' || props.settings.apiVersion === 'v28') {
+      // v25/v26/v28 版本数据处理
       nextPageToken.value = data.nextPageToken || data.next_page_token || ''
       data = data.memos || []
-      
-      // v25/v26 字段映射和处理
+
+      // v25/v26/v28 字段映射和处理
       for (const memo of data) {
         // 确保时间字段兼容性
         if (memo.createTime && !memo.createdTs) {
@@ -553,7 +568,7 @@ const loadMore = async () => {
         if (memo.updateTime && !memo.updatedTs) {
           memo.updatedTs = new Date(memo.updateTime).getTime()
         }
-        
+
         // 处理附件
         if (memo.attachments && memo.attachments.length > 0) {
           try {
@@ -580,7 +595,7 @@ const loadMore = async () => {
     }
 
     // 根据版本和数据量判断是否还有更多数据
-    if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
+    if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26' || props.settings.apiVersion === 'v28') {
       // v25/v26：如果返回的数据量等于limit，假设还有更多数据
       if (data.length >= limit) {
         hasMore.value = true

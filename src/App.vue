@@ -539,12 +539,12 @@ const containerStyle = computed(() => {
   }
 
   // 根据不同视图设置不同的高度
-  if (currentView.value === 'list') {
+  // 编辑器和列表使用相同高度，避免切换时出现空白
+  if (currentView.value === 'list' || currentView.value === 'editor') {
     baseStyle.height = Math.min(settings.value.listMaxHeight, MAX_POPUP_HEIGHT) + 'px'
   } else if (showSettings.value) {
     baseStyle.height = Math.min(settings.value.settingHeight, MAX_POPUP_HEIGHT) + 'px'
   } else {
-    // 编辑器视图使用设置中的高度作为最小值
     baseStyle.minHeight = Math.min(settings.value.height, MAX_POPUP_HEIGHT) + 'px'
     baseStyle.height = 'auto'
   }
@@ -1575,17 +1575,20 @@ const decrementListMaxHeight = () => {
 
 // 监听页面尺寸变化
 watch([
-  () => settings.value.width, 
+  () => settings.value.width,
   () => settings.value.height,
-  () => settings.value.listMaxHeight, 
+  () => settings.value.listMaxHeight,
   () => settings.value.settingHeight,
   () => currentView.value,
   () => showSettings.value,
   () => content.value
 ], () => {
   nextTick(() => {
+    // 使用 double rAF 确保浏览器完成布局重计算后再读取 scrollHeight
     requestAnimationFrame(() => {
-      applyPopupDimensions()
+      requestAnimationFrame(() => {
+        applyPopupDimensions()
+      })
     })
   })
 }, { immediate: true })
@@ -1743,6 +1746,10 @@ const switchToEditor = () => {
   if (!ensureConfiguredOrOpenSettings()) return
   if(showSettings.value) showSettings.value = false;
   currentView.value = 'editor'
+  nextTick(() => {
+    updateEditorHeight()
+    focusEditor()
+  })
 }
 
 // 切换到列表视图
@@ -1777,6 +1784,10 @@ const handleEditMemo = (memo) => {
   visibility.value = memo.visibility
   showSettings.value = false
   currentView.value = 'editor'
+  nextTick(() => {
+    updateEditorHeight()
+    focusEditor()
+  })
 }
 
 const applyPopupDimensions = () => {
@@ -1793,14 +1804,10 @@ const applyPopupDimensions = () => {
 
   if (showSettings.value) {
     height = Math.min(settings.value.settingHeight, MAX_POPUP_HEIGHT)
-  } else if (currentView.value === 'list') {
+  } else if (currentView.value === 'list' || currentView.value === 'editor') {
     height = Math.min(settings.value.listMaxHeight, MAX_POPUP_HEIGHT)
   } else {
-    const root = document.querySelector('.memos-extension') as HTMLElement | null
-    const minHeight = Math.min(settings.value.height, MAX_POPUP_HEIGHT)
-    const contentHeight = root?.scrollHeight || minHeight
-
-    height = Math.min(Math.max(contentHeight, minHeight), MAX_POPUP_HEIGHT)
+    height = Math.min(settings.value.height, MAX_POPUP_HEIGHT)
   }
 
   document.documentElement.style.width = `${width}px`
@@ -1809,24 +1816,16 @@ const applyPopupDimensions = () => {
   document.body.style.height = `${height}px`
 }
 
-// 更新高度的函数
+// 更新编辑器容器高度，清除内联样式让 CSS flexbox 自动填充
 const updateEditorHeight = () => {
   if (currentView.value === 'editor' && !showSettings.value) {
     nextTick(() => {
       const editorContainer = document.querySelector('.editor-container') as HTMLElement | null
       if (editorContainer) {
-        // 使用设置中的高度作为最小高度，避免工具区换行时底部内容被截断
-        const height = isExtensionTarget
-          ? Math.min(settings.value.height, MAX_POPUP_HEIGHT)
-          : settings.value.height
-
-        // 更新所有相关元素的高度
-        requestAnimationFrame(() => {
-          editorContainer.style.minHeight = `${height}px`
-          editorContainer.style.height = 'auto'
-          applyPopupDimensions()
-        })
+        editorContainer.style.minHeight = ''
+        editorContainer.style.height = ''
       }
+      applyPopupDimensions()
     })
   }
 }
@@ -1944,6 +1943,7 @@ html, body {
   height: auto;
   min-height: 300px;
   overflow: visible;
+  flex: 1;
 }
 
 .editor-wrapper {
