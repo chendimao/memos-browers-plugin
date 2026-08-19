@@ -1,3 +1,5 @@
+
+
 # Memos Quick Note
 
 一个用于快速添加笔记到 Memos 的浏览器扩展。这个扩展允许你快速捕捉灵感，保存网页内容，并使用 Memos 管理你的知识。
@@ -166,6 +168,9 @@ npm run build:safari
 
 # 仅构建 Web 版本
 npm run build:web
+
+# 打包发布资产
+npm run build:release-assets
 ```
 
 构建完成后会生成以下目录：
