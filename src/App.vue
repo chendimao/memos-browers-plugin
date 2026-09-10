@@ -232,7 +232,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useStorage } from '@vueuse/core'
-import { createApiService } from './api'
+import { createApiService, usesMemosEnvelope, usesStagedAttachmentUpload, usesLegacyResourceIdList } from './api'
 import Setting from "./views/setting.vue"
 import { showToast } from './utils/toast'
 import TagSelector from './components/TagSelector.vue'
@@ -623,7 +623,7 @@ const fetchRemoteTags = async () => {
     // 处理不同版本的API返回格式
     let remoteTags = []
     if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
-      // v24/v25/v26 返回字符串数组
+      // v24/v25/v26/v30 返回字符串数组
       remoteTags = data
       tagCounts.value = data.reduce((acc, tag) => {
         acc[tag] = 1
@@ -838,8 +838,8 @@ const handleFileUpload = async (event) => {
   const files = event.target.files
   if (!files.length) return
 
-  // v26 版本：只暂存文件，暂不上传到服务器
-  if (settings.value.apiVersion === 'v26') {
+  // v26/v30 版本：只暂存文件，暂不上传到服务器
+  if (usesStagedAttachmentUpload(settings.value.apiVersion)) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       // 生成临时 ID 和本地预览 URL
@@ -858,7 +858,7 @@ const handleFileUpload = async (event) => {
     return
   }
 
-  // 非 v26 版本：原有上传逻辑
+  // 非 v26/v30 版本：原有上传逻辑
   try {
     isUploading.value = true
     const api = createApiService(settings.value.apiVersion)
@@ -1045,7 +1045,7 @@ const submitMemo = async () => {
       let memoIdentifier
       if (currentSettings.apiVersion === 'v18') {
         memoIdentifier = editingMemo.value.id
-      } else if (currentSettings.apiVersion === 'v24' || currentSettings.apiVersion === 'v25' || currentSettings.apiVersion === 'v26') {
+      } else if (usesMemosEnvelope(currentSettings.apiVersion)) {
         memoIdentifier = editingMemo.value.name
       } else {
         memoIdentifier = editingMemo.value.name || editingMemo.value.id
@@ -1064,7 +1064,7 @@ const submitMemo = async () => {
       }
       
       // v25 和 v26 版本不使用resourceIdList，而是通过专门的附件接口设置
-      if (currentSettings.apiVersion !== 'v25' && currentSettings.apiVersion !== 'v26') {
+      if (usesLegacyResourceIdList(currentSettings.apiVersion)) {
         updateData.resourceIdList = uploadedFiles.value.map(file => file.id)
       }
       
@@ -1107,7 +1107,7 @@ const submitMemo = async () => {
       }
 
       // v26 版本：编辑后把本次新增的临时附件直接绑定到该 memo
-      if (currentSettings.apiVersion === 'v26' && uploadedFiles.value.length > 0) {
+      if (usesStagedAttachmentUpload(currentSettings.apiVersion) && uploadedFiles.value.length > 0) {
         for (const fileItem of uploadedFiles.value) {
           if (!fileItem.file) continue
           try {
@@ -1193,7 +1193,7 @@ const submitMemo = async () => {
         showToast(t('app.saveSuccess'))
       } 
       // ========== 修改点3：新增 v26 分支 ==========
-      else if (currentSettings.apiVersion === 'v26') {
+      else if (usesStagedAttachmentUpload(currentSettings.apiVersion)) {
         // 1. 先创建便签（不带附件）
         const actualTags = selectedCustomTags.value.filter(tag => tag && tag.trim() !== '')
         response = await api.createMemo(

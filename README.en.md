@@ -10,6 +10,13 @@ A browser extension for quickly adding notes to Memos. This extension allows you
 > - `Chrome` / `Firefox` / `Safari`: install offline from local build output
 > - `Web`: build `dist/web` and deploy it to your own server
 
+## v1.3.0 Updates
+
+- Added support for the Memos `0.30` API (select `0.30` in Settings).
+- Adapted to the `0.30` API changes: current user now resolves via `/api/v1/auth/me`; the `display_time` order field was removed (use `create_time`); `update_mask` is now passed as a query parameter.
+- Adapted to the `0.30` tag model: `tags` is read-only, so selected custom tags are appended to the content as `#tag`; pinning is applied via a follow-up update.
+- Documented the `0.30` differences in the README and API summary.
+
 ## v1.2.8 Updates
 
 - Redesigned the editor, list, and settings pages with clearer visual hierarchy.
@@ -25,7 +32,7 @@ A browser extension for quickly adding notes to Memos. This extension allows you
 
 ## Overview
 
-Memos Quick Note is a smart note-taking companion for Memos. It supports Memos `v0.18` / `v0.24` / `v0.25` / `v0.26`, with quick capture, tag completion, file and image upload, customizable shortcuts, and flexible settings for a smoother note workflow.
+Memos Quick Note is a smart note-taking companion for Memos. It supports Memos `v0.18` / `v0.24` / `v0.25` / `v0.26` / `v0.30`, with quick capture, tag completion, file and image upload, customizable shortcuts, and flexible settings for a smoother note workflow.
 
 ## Features
 
@@ -61,7 +68,7 @@ Memos Quick Note is a smart note-taking companion for Memos. It supports Memos `
 
 ### Compatibility & Delivery
 
-- Supports Memos `v0.18` / `v0.24` / `v0.25` / `v0.26`
+- Supports Memos `v0.18` / `v0.24` / `v0.25` / `v0.26` / `v0.30`
 - Production builds for Chrome / Edge, Firefox, Safari, and Web
 
 ## Usage
