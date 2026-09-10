@@ -111,7 +111,7 @@
             </div>
             
             <!-- 资源列表展示 -->
-            <div v-if="(settings.apiVersion === 'v24' || settings.apiVersion === 'v25' || settings.apiVersion === 'v26') && memo.resources && memo.resources.length > 0" class="resources-container">
+            <div v-if="(usesMemosEnvelope(settings.apiVersion)) && memo.resources && memo.resources.length > 0" class="resources-container">
               <div class="resources-list">
                 <!-- 图片资源 -->
                 <div v-for="resource in memo.resources.filter(r => r.type.startsWith('image/'))" 
@@ -149,7 +149,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { createApiService } from '../api'
+import { createApiService, usesMemosEnvelope, isModernListApi } from '../api'
 import CustomSelect from '../components/CustomSelect.vue'
 import TagSelector from '../components/TagSelector.vue'
 import { showToast } from '../utils/toast'
@@ -301,12 +301,12 @@ const fetchMemos = async () => {
           console.warn('获取资源失败:', memo.name, error)
         }
       }))
-    } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
-      // v25/v26 版本数据处理
+    } else if (isModernListApi(props.settings.apiVersion)) {
+      // v25/v26/v30 版本数据处理
       nextPageToken.value = data.nextPageToken || data.next_page_token || ''
       data = data.memos || []
       
-      // v25/v26 字段映射和处理
+      // v25/v26/v30 字段映射和处理
       for (const memo of data) {
         // 确保时间字段兼容性
         if (memo.createTime && !memo.createdTs) {
@@ -336,8 +336,8 @@ const fetchMemos = async () => {
       }
     }
     
-    // 客户端标签过滤（v25/v26）
-    if ((props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') && selectedTag.value) {
+    // 客户端标签过滤（v25/v26/v30）
+    if ((isModernListApi(props.settings.apiVersion)) && selectedTag.value) {
       data = data.filter(memo => {
         return memo.tags && memo.tags.includes(selectedTag.value)
       })
@@ -345,7 +345,7 @@ const fetchMemos = async () => {
     }
     
     // 检查是否还有更多数据
-    if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
+    if (isModernListApi(props.settings.apiVersion)) {
       // v25/v26：如果返回的数据量等于 limit，假设还有更多数据
       if (data.length >= limit) {
         hasMore.value = true
@@ -536,12 +536,12 @@ const loadMore = async () => {
           console.warn('获取资源失败:', memo.name, error)
         }
       }))
-    } else if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
-      // v25/v26 版本数据处理
+    } else if (isModernListApi(props.settings.apiVersion)) {
+      // v25/v26/v30 版本数据处理
       nextPageToken.value = data.nextPageToken || data.next_page_token || ''
       data = data.memos || []
       
-      // v25/v26 字段映射和处理
+      // v25/v26/v30 字段映射和处理
       for (const memo of data) {
         // 确保时间字段兼容性
         if (memo.createTime && !memo.createdTs) {
@@ -571,8 +571,8 @@ const loadMore = async () => {
       }
     }
 
-    // 客户端标签过滤（v25/v26）
-    if ((props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') && selectedTag.value) {
+    // 客户端标签过滤（v25/v26/v30）
+    if ((isModernListApi(props.settings.apiVersion)) && selectedTag.value) {
       data = data.filter(memo => {
         return memo.tags && memo.tags.includes(selectedTag.value)
       })
@@ -580,7 +580,7 @@ const loadMore = async () => {
     }
 
     // 根据版本和数据量判断是否还有更多数据
-    if (props.settings.apiVersion === 'v25' || props.settings.apiVersion === 'v26') {
+    if (isModernListApi(props.settings.apiVersion)) {
       // v25/v26：如果返回的数据量等于limit，假设还有更多数据
       if (data.length >= limit) {
         hasMore.value = true
