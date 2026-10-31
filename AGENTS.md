@@ -5,7 +5,7 @@
 - `src/`：主业务代码入口。
 - `src/views/`：页面级视图（如 `MemosList.vue`、`setting.vue`）。
 - `src/components/`：可复用组件。
-- `src/api/`：按 Memos 版本拆分的 API 适配（`v18.js`、`v24.js`、`v25.js`、`v26.js`）。
+- `src/api/`：按 Memos 版本拆分的 API 适配（`v18.js`、`v24.js`、`v25.js`、`v26.js`、`v30.js`），并在 `index.js` 导出 `isModernListApi` / `usesMemosEnvelope` / `usesStagedAttachmentUpload` / `usesLegacyResourceIdList` 等版本能力判断函数。
 - `src/i18n/` 与 `_locales/`：国际化文案。
 - 根目录扩展文件：`manifest.json`、`background.js`、`content.js`、`popup.html`。
 - `dist/`：构建产物，用于浏览器“加载已解压的扩展程序”。

@@ -7,6 +7,39 @@
 
 ---
 
+## ⚠️ Memos 0.30 变更要点（v30 适配）
+
+> 以下差异依据 Memos `0.30.0` 的 proto 定义与实例实测，扩展通过 `src/api/v30.js` 适配。
+
+1. **当前用户 / 认证**
+   - `GET /api/v1/users/me` 已移除（404 `user not found`）→ 使用 `GET /api/v1/auth/me`，响应为 `{ "user": { ... } }`。
+   - 认证方式为 JWT 访问令牌（15 分钟）+ 刷新令牌（30 天）+ **个人访问令牌 PAT**（`memos_pat_` 前缀，长期有效）。
+   - PAT 管理：`GET/POST /api/v1/users/{user}/personalAccessTokens`。
+
+2. **便签列表排序**
+   - `Memo.display_time` 已移除（proto 中 `reserved 6, "display_time"`）。
+   - `order_by` 仅支持 `pinned` / `create_time` / `update_time` / `name`；
+     传 `display_time` 会返回 `400 invalid order_by: unsupported order field: display_time`。
+
+3. **更新便签**
+   - `PATCH /api/v1/{memo.name=memos/*}` 的 `body` 直接绑定 `Memo`，
+     因此 `update_mask` **必须走查询参数**（放请求体会报 `could not find field "updateMask"`），且服务端要求非空掩码。
+   - 可写掩码路径：`content` / `visibility` / `pinned` / `state` / `create_time` / `update_time` / `location` / `attachments` / `relations`。
+
+4. **创建便签**
+   - `Memo.tags` 为 `OUTPUT_ONLY`（由正文 `#标签` 派生，传入被忽略）。
+   - `Memo.pinned` 在 `CreateMemo` 中不被读取 → 置顶需创建后 `PATCH`（`update_mask=pinned`）。
+
+5. **附件**
+   - `POST /api/v1/attachments` 可通过 `memo` 字段直接绑定所属便签（无需再调 `SetMemoAttachments`）。
+   - 响应字段：`name` / `createTime` / `filename` / `externalLink` / `type` / `size`（字符串）/ `motionMedia`。
+   - 文件下载：`GET /file/attachments/{uid}/{filename}`。
+
+6. **私有实例**
+   - 未配置 `--instance-url`（或 `MEMOS_INSTANCE_URL`）时实例默认私有：匿名访问仅限初始化 / 认证 / 分享路由。
+
+---
+
 ## 📑 目录
 
 - [接口服务总览](#接口服务总览)
